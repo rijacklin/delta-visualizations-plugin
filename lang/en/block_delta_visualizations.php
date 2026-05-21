@@ -28,4 +28,3 @@ defined('MOODLE_INTERNAL') || die();
 $string['pluginname'] = 'Delta Visualizations';
 
 $string['delta_visualizations:viewteacher'] = 'View teacher visualizations dashboard';
-$string['delta_visualizations:viewstudent'] = 'View student visualizations dashboard';

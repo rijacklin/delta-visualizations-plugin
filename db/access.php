@@ -41,12 +41,4 @@ $capabilities = [
       'manager' => CAP_ALLOW,
     ],
   ],
-
-  'block/delta_visualizations:viewstudent' => [
-    'captype' => 'read',
-    'contextlevel' => CONTEXT_BLOCK,
-    'archetypes' => [
-      'student' => CAP_ALLOW,
-    ],
-  ],
 ];

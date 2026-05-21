@@ -33,13 +33,23 @@
     }
 }}
 
-<section>
-  <div class="border p-3 mt-3 mb-3">
-    {{> block_delta_visualizations/partials/course_select }}
+<div class="d-flex align-items-center gap-4">
+  <div class="d-flex align-items-center">
+    <span class="mr-3 fs-4 text-nowrap">Start:</span>
+    <input id="start-date-select-{{uniqid}}" class="form-control" type="date" name="startdate" value="{{startdate}}">
   </div>
-  <div class="border p-3 mt-3 mb-3">
-    {{> block_delta_visualizations/partials/date_range_select }}
+  <div class="d-flex align-items-center">
+    <span class="mr-3 fs-4 text-nowrap">End:</span>
+    <input id="end-date-select-{{uniqid}}" class="form-control" type="date" name="enddate" value="{{enddate}}">
   </div>
-  {{< block_delta_visualizations/partials/tabs }}
-  {{/ block_delta_visualizations/partials/tabs }}
-</section>
+
+  <div class="d-flex align-items-center ml-auto">
+    <div class="d-flex align-items-center">
+      <button id="apply-date-filter-{{uniqid}}" type="button" class="btn btn-primary mr-2">Apply</button>
+    </div>
+
+    <div class="d-flex align-items-center">
+      <button id="reset-date-filter-{{uniqid}}" type="button" class="btn btn-secondary mr-2">Clear</button>
+    </div>
+  </div>
+</div>

@@ -63,217 +63,48 @@ class main implements renderable, templatable
     // check if teacher
     $isTeacher = $this->check_if_teacher($courses);
 
-    // ensure ONLY student (e.g., not admin which has both teacher and student capabilities)
-    $isStudent = !$isTeacher && $this->check_if_student($courses);
-
-    // echo "<pre>";
-    // var_dump($isStudent);
-    // echo "</pre>";
-    // die();
-
     $data = new stdClass();
 
-    // build student template data
-    if ($isStudent) {
-      $data->isstudent = $isStudent;
-      $data->userid = $USER->id;
-      $data->fullname = fullname($USER);
-      $data->courseid = $this->course->id ?? 0;
-      $data->courses = [];
+    // build template data
+    $data->isteacher = $isTeacher;
+    $data->userid = $USER->id;
+    $data->fullname = fullname($USER);
+    $data->courseid = $this->course->id ?? 0;
 
-      foreach ($courses as $course) {
-        $data->courses[] = [
-          'id' => $course->id,
-          'name' => $course->shortname
-        ];
-      }
-
-      $data->tabs = [
-        ["id" => "tab1", "name" => "Risk", "content" => "Your risk level is: "],
-      ];
-    } else {
-      // build teacher template data
-      $data->isteacher = $isTeacher;
-      $data->userid = $USER->id;
-      $data->fullname = fullname($USER);
-      $data->courseid = $this->course->id ?? 0;
-
-      $data->tabs = [
-        ["id" => "tab1", "name" => "Instructor", "content" => "Instructor behaviours"],
-        ["id" => "tab2", "name" => "Instructor-Student", "content" => "Instructor-Student behaviours"]
+    // structure courses data
+    foreach ($courses as $course) {
+      $data->courses[] = [
+        'id' => $course->id,
+        'name' => $course->shortname
       ];
     }
 
-    return $data;
+    // dates
+    $data->startdate = date('Y-m-d');
+    $data->enddate = date('Y-m-d');
 
-    ////create the pattern selection range
-    //$today = \core\di::get(\core\clock::class)->now()->gettimestamp();
-    //$prevdate = \core\di::get(\core\clock::class)->now()->modify('-90 day')->getTimestamp();
-    //$data->patternsetstartdate = $prevdate;
-    //$data->patternsetenddate = $today;
-
-    ////create the output needed for the filter widget
-    //$data->patternsetfilter = $this->filter->render();
-
-    ////create a "header" section on the page - this is always expanded content
-    //$data->filtertext = $this->block_delta_visualizations_generate_filtercontent();
-
-    //build the patternset sections for the template
-    // $data->patternsetlist = $this->block_delta_visualizations_build_patternset_output();
-
-    // $data->instructor_dashboard = $this->block_delta_visualizations_build_patternset_output();
-
-    // $course_context = \context_course::instance($this->course->id);
-    // return $data;
-  }
-
-  /*
-     * Get the current filter values to display them on the page
-     *
-     * @param: none.
-     * @return : (string) the text that represents the filter content to display; 
-     *               formatted correctly for the patternsetmain mustache template.
-    */
-  private function block_delta_visualizations_generate_filtercontent(): string
-  {
-    ////store the filter state for later so we can use it when generating tabs
-    //$this->filtersEnabled = $this->filter->block_delta_visualizations_isfiltering();
-
-    ////get filter text to display on form
-    //$filtertext = $this->filter->block_delta_visualizations_get_filters_for_mustache();
-    //return $filtertext;
-
-    return "";
-  }
-
-  /**
-   ** prepare the main patternset output area for the template
-   *
-   * @param: none.
-   * @return : $patterndata (array) data that represents the patternset content to display; 
-   *               formatted correctly for the patternsetmain mustache template.
-   **/
-  private function block_delta_visualizations_build_patternset_output(): array
-  {
-    //create a data array to hold all the output elements
-    $data = [];
-
-    //add the pattern widgets to the output data
-    // $patternsetentries = $this->controller->block_delta_visualizations_get_patternsets();
-    // $templist = [];
-    // $temppos = 0;
-    // foreach ($patternsetentries as $patternsetentry) {
-    //   $tempcode = $patternsetentry['code'];
-    //   $templist[$temppos]['patternsetid'] = $tempcode;
-    //   $temptitle = $patternsetentry['title'];
-    //   $temppatternset = $patternsetentry['builder']->block_delta_visualizations_get_patternset_node();
-    //   //get the output details for the patternset
-    //   $patternsetoutput = $temppatternset->block_delta_visualizations_get_patternset_for_mustache();
-    //
-    //   //check for an empty patternset first
-    //   if ($temppatternset->block_delta_visualizations_patternset_isempty() == true) {
-    //     //pattern has no data so use the empty pattern details provided by the builder
-    //     $emoji = $patternsetoutput['emoji'];
-    //     $templist[$temppos]['emptypatternset']['emoji'] = $this->block_delta_visualizations_convert_emoji($emoji);
-    //     $templist[$temppos]['emptypatternset']['content'] = $patternsetoutput['content'];
-    //     $templist[$temppos]['emptypatternset']['patternsetname'] =
-    //       get_string('nodata', 'block_delta_visualizations') . $temptitle;
-    //   } else {
-    //     //check if this pattern should be inside a collapsed view
-    //     //  pattern at position 0 may be an always open set, all others are collapsed
-    //     if (($temppos == 0) && ($this->hasopenpatternset == true)) {
-    //       //pattern is always open
-    //       $collapsedview = 'openpatternset';
-    //     } else {
-    //       //pattern is initially closed
-    //       $collapsedview = 'closedpatternset';
-    //     }
-    //     //create the patternset tabs based on the patterns in the patternset
-    //     $templist[$temppos][$collapsedview]['showtabsnavigation'] = 1;   //triggers the tabs to be "live"
-    //     $templist[$temppos][$collapsedview]['tabs'] =
-    //       $this->block_delta_visualizations_build_pattern_tabs($temppatternset, $tempcode);
-    //     //generate a report button to see the details
-    //     $templist[$temppos][$collapsedview]['patternsetreportbutton'] = $this->block_delta_visualizations_generate_report_button($tempcode);
-    //     if ($temppatternset->block_delta_visualizations_patternset_isfiltered() == true) {
-    //       $temptitle = $temptitle . get_string('filtered', 'block_delta_visualizations');
-    //     }
-    //     $templist[$temppos][$collapsedview]['patternsetname'] = $temptitle;
-    //   }
-    //   $temppos++;
-    // }
-    // //translate the resulting pattern list into a proper array
-    // //  so mustache can iterate over it  -- the mustache template won't work if it isn't a proper array
-    // $patterndata = [];
-    // $patterndata = array_values($templist);
-    // return $patterndata;
-    // $tabs = block_delta_visualizations_build_pattern_tabs($temppatternset, string $patternsetid);
-
-    $tabs = $this->block_delta_visualizations_build_pattern_tabs();
-
-    return ["heading" => "TITLE", "content" => "TEST CONTENT", $tabs];
-  }
-
-  /**
-   ** prepare the output data for pattern tabs
-   **
-   * @param: $temppatternset (patternset_builder) object holding the patternset information
-   * @param: $patternsetid (string) - the key that represents this patternset type
-   * @return : an array of data that represents the patternset content to display; 
-   *               formatted correctly for the patternsetmain mustache template.
-   **/
-  // private function block_delta_visualizations_build_pattern_tabs($temppatternset, string $patternsetid): array
-  private function block_delta_visualizations_build_pattern_tabs(): array
-  {
-    global $OUTPUT;
-
-    $tabs = [
-      ["id" => "tab1", "name" => "Instructor", "content" => "This is tab 1 content <a href=\"#\">test</a>"],
-      ["id" => "tab2", "name" => "Instructor-Student", "content" => "This is tab 1 content <a href=\"#\">test</a>"],
+    // structure tabs data
+    $data->tabs = [
+      ["id" => "tab1", "name" => "Instructor Behaviour", "content" => "Instructor behaviours"],
+      ["id" => "tab2", "name" => "Instructor View of Student Behaviour", "content" => "Instructor-Student behaviours"]
     ];
 
-    return $tabs;
+    // structure behaviours data
+    $data->behaviours = [
+      ["name" => "Messaging struggling students"],
+      ["name" => "Personalized and timely feedback"],
+      ["name" => "Solicit student feedback"],
+      ["name" => "Consistent use of LMS"],
+      ["name" => "Peer-to-peer support"],
+      ["name" => "Ensure students have timely access to technical support"]
+    ];
 
-    ////if filters on -- generate a new tab shortname
-    //if ($this->filtersEnabled == true) {
-    //
-    //  //set a specific filter value for the tab key 
-    //  $filterkey = 'F';
-    //} else {
-    //  $filterkey = '';
-    //}
-    ////get the individual patterns stored in this pattern set
-    //$temppatterns = $temppatternset->block_delta_visualizations_get_patterns();
-    //
-    ////loop through the patterns and put each pattern on its own individual tab        
-    //$temptabs = [];
-    //$temppos = 0;
-    //$tabisvisible = true;
-    //
-    ////for each individual pattern returned, add it to the temp tabs list
-    //foreach ($temppatterns as $temppattern) {
-    //  //get the individual patterns to be displayed
-    //  $tempcontent = $temppattern->block_delta_visualizations_get_pattern_for_mustache();
-    //  //convert the emoji defined for the empty pattern to a proper icon
-    //  $altemoji = $tempcontent['altemoji'];
-    //  $tempcontent['altemoji'] = $this->block_delta_visualizations_convert_emoji($altemoji);
-    //  if ($temppos > 0) {
-    //    //if not the main pattern in the set, tab is hidden initially
-    //    $tabisvisible = false;
-    //  }
-    //
-    //  $temptabs[$temppos] = [
-    //    'shortname' => $patternsetid . '_' . $temppos . $filterkey,
-    //    'displayname' => $temppattern->block_delta_visualizations_get_patternkey(),
-    //    'active' => $tabisvisible,
-    //    'enabled' => true,
-    //    'patterncontent' => $tempcontent,
-    //  ];
-    //
-    //  $temppos++;
-    //}
-    //
-    ////return the prepared tab data
-    //return $temptabs;
+    // echo "<pre>";
+    // var_dump($data);
+    // echo "</pre>";
+    // die();
+
+    return $data;
   }
 
   private function check_if_teacher($courses): bool
@@ -290,44 +121,5 @@ class main implements renderable, templatable
     }
 
     return $isTeacher;
-  }
-
-  private function check_if_student($courses): bool
-  {
-    global $USER;
-
-    $isStudent = false;
-
-    foreach ($courses as $course) {
-      $course_context = \context_course::instance($course->id);
-      if (has_capability('block/delta_visualizations:viewstudent', $course_context, $USER)) {
-        $isStudent = true;
-      }
-    }
-
-    return $isStudent;
-  }
-
-  /*
-     * A helper function to translate the emoji text into an appropriate mustache output string
-     *
-     * @param: $emojiname (string) - the text that refers to the emoji.
-     * @return: the rendered icon formatted for output
-    */
-  private function block_delta_visualizations_convert_emoji(string $emojiname)
-  {
-    global $OUTPUT;
-    if ($emojiname == 'sad') {
-      //return the picture for sad
-      return $OUTPUT->pix_icon('s/sad', 'Ooops..'); //'s/sad, core, Not Good';
-    } else if ($emojiname == 'happy') {
-      //return the picture for happy
-      return $OUTPUT->pix_icon('s/biggrin', 'Excellent'); //'s/biggrin, core, Excellent';
-    } else if ($emojiname == 'neutral') {
-      //return a mixed emoji
-      return $OUTPUT->pix_icon('s/mixed', 'Average'); //'s/mixed, core, Excellent';
-    } else {
-      return $emojiname;
-    }
   }
 }

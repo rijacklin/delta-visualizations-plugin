@@ -42,8 +42,6 @@ class renderer extends plugin_renderer_base
    */
   public function render_main(main $page): string
   {
-    $dashboard = 1;
-
     $data = $page->export_for_template($this);
 
     // echo "<pre>";
@@ -51,46 +49,9 @@ class renderer extends plugin_renderer_base
     // echo "</pre>";
     // die();
 
-    // TODO: Doesnt work on dashboard because of course id check
-
-    // check if teacher context
-    if (!empty($data->isteacher) && $data->isteacher == true) {
-      return $this->render_from_template(
-        'block_delta_visualizations/instructor_dashboard',
-        $data
-      );
-    }
-
-    // check if student context
-    if (!empty($data->isstudent) && $data->isstudent == true) {
-      return $this->render_from_template(
-        'block_delta_visualizations/student_dashboard',
-        $data
-      );
-    }
-
-    // otherwise, don't show visualizations dashboard
     return $this->render_from_template(
-      'block_delta_visualizations/no_access',
+      'block_delta_visualizations/instructor_dashboard',
       $data
     );
   }
-
-
-  // /**
-  //  * Render the instructor dashboard block.
-  //  *
-  //  * @param: renderable $mainpage The output for the instructor dashboard.
-  //  * @return: a renderer for the instructor dashboard mustache page
-  //  */
-  // public function render_instructor_dashboard(renderable $block)
-  // {
-  //   echo "<pre>";
-  //   var_dump($block);
-  //   echo "</pre>";
-  //   die();
-  //
-  //   $data = $block->export_for_template($this);
-  //   return parent::render_from_template('block_delta_visualizations/instructor_dashboard', $data);
-  // }
 }
