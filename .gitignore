@@ -1,4 +1,4 @@
 phpunit.xml
 
 # macos
-.DS_Store
+**/.DS_Store
