@@ -99,6 +99,14 @@ class main implements renderable, templatable
       ["name" => "Ensure students have timely access to technical support"]
     ];
 
+    $chart = new \core\chart_pie();
+    $chart->set_labels(['2023', '2024', '2025', '2026']);
+    $series = new \core\chart_series('My series title', [400, 460, 1120, 540]);
+    $chart->add_series($series);
+
+    // $data->chartjson = json_encode($chart);
+    $data->chart = $output->render($chart);
+
     // echo "<pre>";
     // var_dump($data);
     // echo "</pre>";
