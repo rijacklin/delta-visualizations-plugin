@@ -66,8 +66,6 @@ class ManagingTimeCommitments extends TeacherBehaviourPattern
     ]);
 
     $this->records = $records;
-
-    // return $records;
   }
 
   public function time_commitment_messaging_low_grades(int $threshold_grade, int $response_period)

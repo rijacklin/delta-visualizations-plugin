@@ -91,48 +91,94 @@ class main implements renderable, templatable
       ["id" => "tab2", "name" => "Instructor View of Student Behaviour", "content" => "Instructor-Student behaviours"]
     ];
 
-    // structure behaviours data
-    $data->behaviours = [
-      ["name" => "Messaging struggling students"],
-      ["name" => "Personalized and timely feedback"],
-      ["name" => "Solicit student feedback"],
-      ["name" => "Consistent use of LMS"],
-      ["name" => "Peer-to-peer support"],
-      ["name" => "Ensure students have timely access to technical support"]
+    $behaviour_grades = new ManagingTimeCommitments();
+    $behaviour_grades_data = $behaviour_grades->time_commitment_messaging_low_grades(70, 30);
+    $behaviour_grades_chart = $output->render($behaviour_grades->create_pie_chart($behaviour_grades_data));
+
+    // $behaviour_participation = new ManagingTimeCommitments();
+
+    // structure teacher behaviours data
+    $data->teacher_behaviours = [
+      [
+        "name" => "Messaging struggling students - low grades",
+        "chart" => $behaviour_grades_chart,
+      ],
+      [
+        "name" => "Messaging struggling students - low participation",
+        "chart" => null,
+      ],
+      [
+        "name" => "Solicit student feedback",
+        "chart" => null,
+      ],
+      [
+        "name" => "Consistent use of LMS",
+        "chart" => null,
+      ],
+      [
+        "name" => "Peer-to-peer support",
+        "chart" => null,
+      ],
+      [
+        "name" => "Ensure students have timely access to technical support",
+        "chart" => null,
+      ]
     ];
 
-    // --- BEGIN TESTING ---
-
-    $behaviour = new ManagingTimeCommitments();
-    // $behaviour->query_grades();
-    // $behaviour->query_activity_one();
-    $data->behaviour = $behaviour->time_commitment_messaging_low_grades(70, 30);
-    $data->chart = $output->render($behaviour->create_pie_chart($data->behaviour));
-    // $data->chart = $output->render($behaviour->create_line_chart($data->behaviour));
+    // structure teacher view of student behaviours data
+    $data->student_behaviours = [
+      [
+        "name" => "Login frequency",
+        "chart" => null,
+      ],
+      [
+        "name" => "Student active time",
+        "chart" => null,
+      ],
+      [
+        "name" => "Time spent viewing forums",
+        "chart" => null,
+      ],
+      [
+        "name" => "Time spent on assignments",
+        "chart" => null,
+      ],
+      [
+        "name" => "Learning object access frequency",
+        "chart" => null,
+      ],
+      [
+        "name" => "Time spent accessing learning objects",
+        "chart" => null,
+      ],
+      [
+        "name" => "Number of forums viewed",
+        "chart" => null,
+      ],
+      [
+        "name" => "Forum posting consistency",
+        "chart" => null,
+      ],
+      [
+        "name" => "Quiz consistency",
+        "chart" => null,
+      ],
+      [
+        "name" => "Number of forum postings",
+        "chart" => null,
+      ],
+      [
+        "name" => "Number of messages sent",
+        "chart" => null,
+      ],
+      [
+        "name" => "Forum post frequency",
+        "chart" => null,
+      ],
+    ];
 
     // echo "<pre>";
-    // var_dump($data->chart);
-    // echo "</pre>";
-    // die();
-
-    // $data->behaviour = $behaviour->get_records();
-
-    // $behaviour = new LoginFrequency();
-    // $behaviour->query_behaviour_data();
-    // $data->behaviour = $behaviour->get_records();
-
-    // echo "<pre>";
-    // var_dump($data->behaviour);
-    // echo "</pre>";
-    // die();
-
-    // --- END TESTING ---
-
-    // // $data->chartjson = json_encode($chart);
-    // $data->chart = $output->render($chart);
-
-    // echo "<pre>";
-    // var_dump($data);
+    // var_dump($data->behaviours);
     // echo "</pre>";
     // die();
 

@@ -33,14 +33,17 @@
     }
 }}
 
-<div class="d-flex align-items-center gap-4 border px-3 py-2 mt-3 mb-3">
-  <div class="d-flex align-items-center">
-    <span class="text-nowrap">{{name}}</span>
-  </div>
-  <div class="d-flex align-items-center ml-auto">
-    <span class="d-flex align-items-center">
-      <span class="text-nowrap">Show More</span>
+<details class="border px-3 py-2 mt-3 mb-3">
+  <summary class="d-flex align-items-center gap-4 text-primary" style="cursor: pointer;">
+    <span class="text-nowrap text-body">{{name}}</span>
+
+    <span class="d-flex align-items-center text-nowrap ml-auto">
+      Show
       <span class="ml-1" aria-hidden="true">&#x2228;</span>
     </span>
-  </div>
-</div>
+  </summary>
+
+    <div class="mt-3 mb-3">
+    {{{chart}}}
+    </div>
+</details>
