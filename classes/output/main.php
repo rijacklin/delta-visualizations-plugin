@@ -26,6 +26,8 @@ namespace block_delta_visualizations\output;
 
 defined('MOODLE_INTERNAL') || die();
 
+use block_delta_visualizations\teacher_patterns\ManagingTimeCommitments;
+use block_delta_visualizations\student_patterns\LoginFrequency;
 use renderable;
 use renderer_base;
 use templatable;
@@ -99,13 +101,35 @@ class main implements renderable, templatable
       ["name" => "Ensure students have timely access to technical support"]
     ];
 
-    $chart = new \core\chart_pie();
-    $chart->set_labels(['2023', '2024', '2025', '2026']);
-    $series = new \core\chart_series('My series title', [400, 460, 1120, 540]);
-    $chart->add_series($series);
+    // --- BEGIN TESTING ---
 
-    // $data->chartjson = json_encode($chart);
-    $data->chart = $output->render($chart);
+    $behaviour = new ManagingTimeCommitments();
+    // $behaviour->query_grades();
+    // $behaviour->query_activity_one();
+    $data->behaviour = $behaviour->time_commitment_messaging_low_grades(70, 30);
+    $data->chart = $output->render($behaviour->create_pie_chart($data->behaviour));
+    // $data->chart = $output->render($behaviour->create_line_chart($data->behaviour));
+
+    // echo "<pre>";
+    // var_dump($data->chart);
+    // echo "</pre>";
+    // die();
+
+    // $data->behaviour = $behaviour->get_records();
+
+    // $behaviour = new LoginFrequency();
+    // $behaviour->query_behaviour_data();
+    // $data->behaviour = $behaviour->get_records();
+
+    // echo "<pre>";
+    // var_dump($data->behaviour);
+    // echo "</pre>";
+    // die();
+
+    // --- END TESTING ---
+
+    // // $data->chartjson = json_encode($chart);
+    // $data->chart = $output->render($chart);
 
     // echo "<pre>";
     // var_dump($data);
