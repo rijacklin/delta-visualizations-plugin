@@ -44,8 +44,14 @@ class renderer extends plugin_renderer_base
   {
     $data = $page->export_for_template($this);
 
+
+    // // -- FILTER BY TIME RANGE (HOURLY, DAILY, WEEKLY)
+    // $now = time();
     // echo "<pre>";
-    // var_dump($data);
+    // // var_dump($now - HOURSECS);
+    // // var_dump($now - DAYSECS);
+    // var_dump($now - WEEKSECS);
+    // var_dump($now);
     // echo "</pre>";
     // die();
 

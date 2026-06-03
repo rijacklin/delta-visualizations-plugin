@@ -45,6 +45,16 @@ enum ActivityBehaviour: Int
   }
 }
 
+trait BarChart
+{
+  abstract protected function create_bar_chart(stdClass $activity_behaviour);
+}
+
+trait PieChart
+{
+  abstract protected function create_pie_chart(stdClass $activity_behaviour);
+}
+
 /**
  * Creates a renderer for the block_delta_visualizations
  *
@@ -53,13 +63,6 @@ abstract class TeacherBehaviourPattern
 {
   protected $table;
   protected $records = [];
-
-  // abstract protected function time_commitment_messaging_low_grades();
-
-  // abstract protected function query_behaviour_data();
-
-  abstract protected function create_pie_chart(stdClass $activity_behaviou);
-  abstract protected function create_line_chart(stdClass $activity_behaviou);
 
   public function get_records()
   {

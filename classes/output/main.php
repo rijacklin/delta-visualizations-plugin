@@ -26,8 +26,18 @@ namespace block_delta_visualizations\output;
 
 defined('MOODLE_INTERNAL') || die();
 
-use block_delta_visualizations\teacher_patterns\ManagingTimeCommitments;
+use block_delta_visualizations\teacher_patterns\CoursePerformanceFeedback;
+
+use block_delta_visualizations\student_patterns\ForumPostingFrequency;
+use block_delta_visualizations\student_patterns\LOAccessFrequency;
 use block_delta_visualizations\student_patterns\LoginFrequency;
+use block_delta_visualizations\student_patterns\StudentActiveTime;
+use block_delta_visualizations\student_patterns\StudentInactiveTime;
+use block_delta_visualizations\student_patterns\TimeSpentForums;
+use block_delta_visualizations\student_patterns\TimeSpentLO;
+use block_delta_visualizations\student_patterns\TimeSpentAssignments;
+use block_delta_visualizations\student_patterns\NumberForumsViewed;
+
 use renderable;
 use renderer_base;
 use templatable;
@@ -91,11 +101,14 @@ class main implements renderable, templatable
       ["id" => "tab2", "name" => "Instructor View of Student Behaviour", "content" => "Instructor-Student behaviours"]
     ];
 
-    $behaviour_grades = new ManagingTimeCommitments();
-    $behaviour_grades_data = $behaviour_grades->time_commitment_messaging_low_grades(70, 30);
-    $behaviour_grades_chart = $output->render($behaviour_grades->create_pie_chart($behaviour_grades_data));
+    $behaviour_grades = new CoursePerformanceFeedback();
+    $activity_behaviour = $behaviour_grades->feedback_low_assignment_grade(70, 30);
+    // $behaviour_grades_chart = $output->render($behaviour_grades->create_bar_chart($activity_behaviour));
+    $behaviour_grades_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour));
 
-    // $behaviour_participation = new ManagingTimeCommitments();
+    // $behaviour_participation = new CoursePerformanceFeedback();
+    // $activity_behaviour_participation = $behaviour_participation->time_commitment_messaging_low_participation(70, 30);
+    // $behaviour_participation_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour_participation));
 
     // structure teacher behaviours data
     $data->teacher_behaviours = [
@@ -106,6 +119,7 @@ class main implements renderable, templatable
       [
         "name" => "Messaging struggling students - low participation",
         "chart" => null,
+        // "chart" => $behaviour_participation_chart,
       ],
       [
         "name" => "Solicit student feedback",
@@ -125,34 +139,90 @@ class main implements renderable, templatable
       ]
     ];
 
+    $login_frequency = new LoginFrequency();
+    $login_frequency->query_behaviour_data();
+    $login_frequency_chart = $output->render($login_frequency->create_bar_chart());
+
+    $student_active_time = new StudentActiveTime();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $student_active_time->query_behaviour_data();
+    $student_active_time_chart = $output->render($student_active_time->create_bar_chart());
+
+    $student_inactive_time = new StudentInactiveTime();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $student_inactive_time->query_behaviour_data();
+    $student_inactive_time_chart = $output->render($student_inactive_time->create_bar_chart());
+
+    $time_spent_forums = new TimeSpentForums();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $time_spent_forums->query_behaviour_data();
+    $time_spent_forums_chart = $output->render($time_spent_forums->create_bar_chart());
+
+    $time_spent_assign = new TimeSpentAssignments();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $time_spent_assign->query_behaviour_data();
+    $time_spent_assign_chart = $output->render($time_spent_assign->create_bar_chart());
+
+    $lo_acccess_frequency = new LOAccessFrequency();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $lo_acccess_frequency->query_behaviour_data();
+    $lo_acccess_frequency_chart = $output->render($lo_acccess_frequency->create_bar_chart());
+
+    $forum_posting_frequency = new ForumPostingFrequency();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $forum_posting_frequency->query_behaviour_data();
+    $forum_posting_frequency_chart = $output->render($forum_posting_frequency->create_bar_chart());
+
+    $time_spent_lo = new TimeSpentLO();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $time_spent_lo->query_behaviour_data();
+    $time_spent_lo_chart = $output->render($time_spent_lo->create_bar_chart());
+
+    $num_forums_viewed = new NumberForumsViewed();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $num_forums_viewed->query_behaviour_data();
+    $num_forums_viewed_chart = $output->render($num_forums_viewed->create_bar_chart());
+
     // structure teacher view of student behaviours data
     $data->student_behaviours = [
       [
         "name" => "Login frequency",
-        "chart" => null,
+        "chart" => $login_frequency_chart,
       ],
       [
         "name" => "Student active time",
-        "chart" => null,
+        "chart" => $student_active_time_chart,
+      ],
+      [
+        "name" => "Student inactive time",
+        "chart" => $student_inactive_time_chart,
       ],
       [
         "name" => "Time spent viewing forums",
-        "chart" => null,
+        "chart" => $time_spent_forums_chart,
       ],
       [
         "name" => "Time spent on assignments",
-        "chart" => null,
+        "chart" => $time_spent_assign_chart,
       ],
       [
         "name" => "Learning object access frequency",
-        "chart" => null,
+        "chart" => $lo_acccess_frequency_chart,
+      ],
+      [
+        "name" => "Forum posting frequency",
+        "chart" => $forum_posting_frequency_chart,
       ],
       [
         "name" => "Time spent accessing learning objects",
-        "chart" => null,
+        "chart" => $time_spent_lo_chart,
       ],
       [
         "name" => "Number of forums viewed",
+        "chart" => $num_forums_viewed_chart,
+      ],
+      [
+        "name" => "Number of messages sent",
         "chart" => null,
       ],
       [
@@ -162,19 +232,7 @@ class main implements renderable, templatable
       [
         "name" => "Quiz consistency",
         "chart" => null,
-      ],
-      [
-        "name" => "Number of forum postings",
-        "chart" => null,
-      ],
-      [
-        "name" => "Number of messages sent",
-        "chart" => null,
-      ],
-      [
-        "name" => "Forum post frequency",
-        "chart" => null,
-      ],
+      ]
     ];
 
     // echo "<pre>";

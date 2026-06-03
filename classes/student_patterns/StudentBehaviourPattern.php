@@ -26,6 +26,33 @@ namespace block_delta_visualizations\student_patterns;
 
 defined('MOODLE_INTERNAL') || die();
 
+// represents teacher activity behaviour state
+enum TimeRange: Int
+{
+  case HOURLY = 1;
+  case DAILY = 2;
+  case WEEKLY = 3;
+
+  public function label(): string
+  {
+    return match ($this) {
+      self::HOURLY => "Hourly",
+      self::DAILY => "Daily",
+      self::WEEKLY => "Weekly",
+    };
+  }
+}
+
+trait BarChart
+{
+  abstract protected function create_bar_chart();
+}
+
+trait PieChart
+{
+  abstract protected function create_pie_chart();
+}
+
 /**
  * Creates a renderer for the block_delta_visualizations
  *
@@ -33,14 +60,20 @@ defined('MOODLE_INTERNAL') || die();
 abstract class StudentBehaviourPattern
 {
   protected $table;
+
+  // TODO: Don't hardcode this
+  protected $time_range = TimeRange::WEEKLY;
   protected $records = [];
 
   abstract protected function query_behaviour_data();
 
-  abstract protected function create_chart();
-
   public function get_records()
   {
     return $this->records;
+  }
+
+  public function get_time_range()
+  {
+    return $this->time_range;
   }
 }

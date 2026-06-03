@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Models first student behaviour: Login Frequency
+ * Models student behaviour: Forum Posting Frequency
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
@@ -30,29 +30,53 @@ defined('MOODLE_INTERNAL') || die();
  * Creates a renderer for the block_delta_visualizations
  *
  */
-class LoginFrequency extends StudentBehaviourPattern
+class ForumPostingFrequency extends StudentBehaviourPattern
 {
   use BarChart;
-
-  // static values for now
-  protected $table = 'logstore_standard_log';
 
   public function query_behaviour_data()
   {
     global $DB;
 
+    $now = time();
+
+    // TODO: Grab actual courseid from template
+    $courseid = 3;
+
+    switch ($this->time_range) {
+      case TimeRange::HOURLY:
+        $start_time = $now - HOURSECS;
+        break;
+      case TimeRange::DAILY:
+        $start_time = $now - DAYSECS;
+        break;
+      case TimeRange::WEEKLY:
+        $start_time = $now - WEEKSECS;
+        break;
+      default:
+        $start_time = 0;
+        break;
+    }
+
     $sql = "
       SELECT
-        log.userid,
-        COUNT(*) as logincount
-      FROM {logstore_standard_log} log
-      WHERE log.eventname LIKE :eventname
-      GROUP BY log.userid
-      ORDER BY log.userid ASC
+        fp.userid,
+        COUNT(fp.id)
+      FROM {forum_posts} fp
+      JOIN {forum} f
+        ON f.id = fp.discussion
+      WHERE fp.userid IS NOT null
+        AND f.course = :courseid
+        -- Filter by hourly/daily/weekly
+        AND f.timemodified >= :starttime
+      GROUP BY fp.id
+      ORDER BY fp.userid ASC
     ";
 
     $records = $DB->get_records_sql($sql, [
-      'eventname' => '%user_loggedin%',
+      // TODO: Grab actual courseid from template
+      'courseid' => $courseid,
+      'starttime' => $start_time
     ]);
 
     $this->records = $records;
@@ -63,10 +87,11 @@ class LoginFrequency extends StudentBehaviourPattern
     $data = $this->records;
 
     $students = [];
+    $count = [];
 
     foreach ($data as $student_id => $value) {
-      $students[] =  intval($student_id);
-      $frequency[] = $value->logincount;
+      $students[] = intval($student_id);
+      $count[] = intval($value->count);
     }
 
     $chart = new \core\chart_bar();
@@ -75,15 +100,17 @@ class LoginFrequency extends StudentBehaviourPattern
     $chart->set_labels($students);
 
     // y-axis
-    $series = new \core\chart_series('Login Frequency', $frequency);
+    $series = new \core\chart_series('Number of Forum Postings', $count);
     $chart->add_series($series);
 
     $xaxis = $chart->get_xaxis(0, true);
     $xaxis->set_label("Student ID");
 
     $yaxis = $chart->get_yaxis(0, true);
-    $yaxis->set_label("Login Frequency");
-    $yaxis->set_stepsize(5);
+    $yaxis->set_label("Number of Forum Postings");
+    $yaxis->set_min(0);
+    $yaxis->set_max(100);
+    $yaxis->set_stepsize(10);
 
     return $chart;
   }
