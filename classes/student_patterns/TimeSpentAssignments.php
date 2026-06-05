@@ -75,9 +75,6 @@ class TimeSpentAssignments extends StudentBehaviourPattern
           ) AS next_event_time
         FROM {logstore_standard_log} log
         WHERE log.userid IS NOT NULL
-          and log.courseid = :courseid
-          -- Filter by hourly/daily/weekly
-          and log.timecreated >= :starttime
       ),
       assignment_views AS (
         SELECT
@@ -103,46 +100,28 @@ class TimeSpentAssignments extends StudentBehaviourPattern
           assignmentid,
           MIN(view_time) AS first_view_time
         FROM assignment_views
-        GROUP BY
-          userid,
-          courseid,
-          coursemoduleid,
-          assignmentid
+        GROUP BY userid, courseid, coursemoduleid, assignmentid
       ),
-      first_assignment_submission AS (
+      duration_per_assignment AS (
         SELECT
-          fav.userid,
-          fav.courseid,
-          fav.coursemoduleid,
-          fav.assignmentid,
-          fav.first_view_time,
-          MIN(sub.timemodified) AS first_submission_time
+          fav.userid as studentid,
+          fav.assignmentid as assignmentid,
+          fav.coursemoduleid as moduleid,
+          MIN(sub.timemodified) - fav.first_view_time AS time_spent_on_assignment
         FROM first_assignment_view fav
         JOIN {assign_submission} sub
           ON sub.userid = fav.userid
-        AND sub.assignment = fav.assignmentid
-        AND sub.timemodified >= fav.first_view_time
+          AND sub.assignment = fav.assignmentid
+          AND sub.timemodified >= fav.first_view_time
         WHERE sub.latest = 1
-        GROUP BY
-          fav.userid,
-          fav.courseid,
-          fav.coursemoduleid,
-          fav.assignmentid,
-          fav.first_view_time
+        GROUP BY fav.userid, fav.assignmentid, fav.coursemoduleid, fav.first_view_time
       )
       SELECT
-        userid,
-        courseid,
-        coursemoduleid,
-        assignmentid,
-        first_view_time,
-        first_submission_time,
-        first_submission_time - first_view_time AS seconds_from_first_view_to_submission
-      FROM first_assignment_submission
-      ORDER BY
-        userid ASC,
-        courseid ASC,
-        assignmentid ASC;
+        studentid,
+        SUM(time_spent_on_assignment) as total_time_spent
+      FROM duration_per_assignment
+      GROUP BY studentid
+      ORDER BY studentid ASC
     ";
 
     $records = $DB->get_records_sql($sql, [

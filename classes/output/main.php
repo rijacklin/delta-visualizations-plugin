@@ -27,6 +27,7 @@ namespace block_delta_visualizations\output;
 defined('MOODLE_INTERNAL') || die();
 
 use block_delta_visualizations\teacher_patterns\CoursePerformanceFeedback;
+use block_delta_visualizations\teacher_patterns\PersonalizedFeedback;
 
 use block_delta_visualizations\student_patterns\ForumPostingFrequency;
 use block_delta_visualizations\student_patterns\LOAccessFrequency;
@@ -102,13 +103,13 @@ class main implements renderable, templatable
     ];
 
     $behaviour_grades = new CoursePerformanceFeedback();
-    $activity_behaviour = $behaviour_grades->feedback_low_assignment_grade(70, 30);
+    $activity_behaviour = $behaviour_grades->query_behaviour_data([70, 30]);
     // $behaviour_grades_chart = $output->render($behaviour_grades->create_bar_chart($activity_behaviour));
     $behaviour_grades_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour));
 
-    // $behaviour_participation = new CoursePerformanceFeedback();
-    // $activity_behaviour_participation = $behaviour_participation->time_commitment_messaging_low_participation(70, 30);
-    // $behaviour_participation_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour_participation));
+    $personalized_feedback = new PersonalizedFeedback();
+    $activity_behaviour_personalized_feedback = $personalized_feedback->query_behaviour_data([70, 0.60]);
+    $personalized_feedback_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour_personalized_feedback));
 
     // structure teacher behaviours data
     $data->teacher_behaviours = [
@@ -117,26 +118,9 @@ class main implements renderable, templatable
         "chart" => $behaviour_grades_chart,
       ],
       [
-        "name" => "Messaging struggling students - low participation",
-        "chart" => null,
-        // "chart" => $behaviour_participation_chart,
+        "name" => "Personalized Feedback",
+        "chart" => $personalized_feedback_chart,
       ],
-      [
-        "name" => "Solicit student feedback",
-        "chart" => null,
-      ],
-      [
-        "name" => "Consistent use of LMS",
-        "chart" => null,
-      ],
-      [
-        "name" => "Peer-to-peer support",
-        "chart" => null,
-      ],
-      [
-        "name" => "Ensure students have timely access to technical support",
-        "chart" => null,
-      ]
     ];
 
     $login_frequency = new LoginFrequency();

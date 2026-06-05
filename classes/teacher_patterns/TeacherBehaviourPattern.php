@@ -64,6 +64,8 @@ abstract class TeacherBehaviourPattern
   protected $table;
   protected $records = [];
 
+  abstract protected function query_behaviour_data(array $params);
+
   public function get_records()
   {
     return $this->records;
