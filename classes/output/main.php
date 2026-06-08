@@ -28,6 +28,8 @@ defined('MOODLE_INTERNAL') || die();
 
 use block_delta_visualizations\teacher_patterns\CoursePerformanceFeedback;
 use block_delta_visualizations\teacher_patterns\PersonalizedFeedback;
+use block_delta_visualizations\teacher_patterns\TimelyFeedback;
+use block_delta_visualizations\teacher_patterns\MonitoringForums;
 
 use block_delta_visualizations\student_patterns\ForumPostingFrequency;
 use block_delta_visualizations\student_patterns\LOAccessFrequency;
@@ -103,13 +105,26 @@ class main implements renderable, templatable
     ];
 
     $behaviour_grades = new CoursePerformanceFeedback();
+
+    // TODO: Find a better way to pass grade threshold and response timeframe
     $activity_behaviour = $behaviour_grades->query_behaviour_data([70, 30]);
     // $behaviour_grades_chart = $output->render($behaviour_grades->create_bar_chart($activity_behaviour));
     $behaviour_grades_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour));
 
     $personalized_feedback = new PersonalizedFeedback();
+
+    // TODO: Find a better way to pass grade threshold and uniqueness score 
     $activity_behaviour_personalized_feedback = $personalized_feedback->query_behaviour_data([70, 0.60]);
     $personalized_feedback_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour_personalized_feedback));
+
+    $timely_feedback = new TimelyFeedback();
+    // TODO: Find a better way to pass grade threshold and feedback timeframe (days)
+    $activity_behaviour_timely_feedback = $timely_feedback->query_behaviour_data([70, 8]);
+    $timely_feedback_chart = $output->render($timely_feedback->create_pie_chart($activity_behaviour_timely_feedback));
+
+    $monitoring_forums = new MonitoringForums();
+    $activity_behaviour_monitoring_forums = $monitoring_forums->query_behaviour_data([]);
+    $monitoring_forums_chart = $output->render($monitoring_forums->create_pie_chart($activity_behaviour_monitoring_forums));
 
     // structure teacher behaviours data
     $data->teacher_behaviours = [
@@ -120,6 +135,14 @@ class main implements renderable, templatable
       [
         "name" => "Personalized Feedback",
         "chart" => $personalized_feedback_chart,
+      ],
+      [
+        "name" => "Timely Feedback",
+        "chart" => $timely_feedback_chart,
+      ],
+      [
+        "name" => "Monitoring Forums",
+        "chart" => $monitoring_forums_chart,
       ],
     ];
 
@@ -204,10 +227,6 @@ class main implements renderable, templatable
       [
         "name" => "Number of forums viewed",
         "chart" => $num_forums_viewed_chart,
-      ],
-      [
-        "name" => "Number of messages sent",
-        "chart" => null,
       ],
       [
         "name" => "Forum posting consistency",

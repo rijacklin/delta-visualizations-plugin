@@ -143,7 +143,7 @@ class TimeSpentAssignments extends StudentBehaviourPattern
 
     foreach ($data as $student_id => $value) {
       $students[] =  intval($student_id);
-      $assign_view_time[] = (int)ceil($value->seconds_from_first_view_to_submission * 0.0002777777777778);
+      $assign_view_time[] = (int)ceil($value->total_time_spent * 0.0002777777777778);
     }
 
     // TODO: REMOVE LATER; TEMP TO SHOW VALUE CONTRAST ON CHART
@@ -165,9 +165,7 @@ class TimeSpentAssignments extends StudentBehaviourPattern
 
     $yaxis = $chart->get_yaxis(0, true);
     $yaxis->set_label("Hours Spent On Assignments");
-    $yaxis->set_min(0);
-    $yaxis->set_max(24);
-    $yaxis->set_stepsize(1);
+    $yaxis->set_stepsize(10);
 
     return $chart;
   }
