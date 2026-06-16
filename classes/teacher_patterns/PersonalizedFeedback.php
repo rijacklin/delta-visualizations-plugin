@@ -76,9 +76,9 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
 
     $records = $DB->get_records_sql($sql, [
       // TODO: replace with something better than array index
-      'gradethreshold' => $params[0],
+      'gradethreshold' => $params['gradethreshold'],
       'teacherid' => $USER->id,
-      'courseid' => 3
+      'courseid' => $params['courseid']
     ]);
 
     // TODO: replace with something better than array index

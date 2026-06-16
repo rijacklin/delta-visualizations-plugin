@@ -67,7 +67,7 @@ class MonitoringForums extends TeacherBehaviourPattern
     $records = $DB->get_records_sql($sql, [
       // TODO: replace with something better than array index
       'userid' => $USER->id,
-      'courseid' => 3
+      'courseid' => $params['courseid']
     ]);
 
     $data = new stdClass();
@@ -80,7 +80,7 @@ class MonitoringForums extends TeacherBehaviourPattern
 
     foreach ($posts as $post) {
       // message properties
-      $post_from = $post->student_id;
+      $post_from = "";
       $post_text = $post->message;
 
       // early exit

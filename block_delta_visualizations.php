@@ -47,7 +47,6 @@ class block_delta_visualizations extends block_base
   {
     global $COURSE;
 
-    // exit early if no content
     if ($this->content !== null) {
       return $this->content;
     }
@@ -64,27 +63,6 @@ class block_delta_visualizations extends block_base
 
     return $this->content;
   }
-
-  // /**
-  //  * Renders the page content based on current controller and filter values
-  //  *
-  //  * @param none.
-  //  * @return none.
-  //  */
-  // private function block_delta_visualizations_render_new_content()
-  // {
-  //   $filter = "";
-  //
-  //   // $filter = $this->block_delta_visualizations_filter;
-  //   // $controller = $this->block_delta_visualizations_controller;
-  //   // $renderable = new \block_delta_visualizations\output\instructor_dashboard($filter, $controller);
-  //   $renderable = new \block_delta_visualizations\output\instructor_dashboard($filter);
-  //   $renderer = $this->page->get_renderer('block_delta_visualizations');
-  //   $this->content = (object) [
-  //     'text' => $renderer->render($renderable),
-  //     'footer' => ''
-  //   ];
-  // }
 
   /**
    * Defines in which pages this block can be added.

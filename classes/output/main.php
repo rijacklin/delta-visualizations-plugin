@@ -71,20 +71,43 @@ class main implements renderable, templatable
    */
   public function export_for_template(renderer_base $output): stdClass
   {
-    global $USER;
+    global $USER, $DB;
 
     $courses = \enrol_get_users_courses($USER->id, true);
 
     // check if teacher
     $isTeacher = $this->check_if_teacher($courses);
 
+    $default_date = date('Y-m-d');
+
     $data = new stdClass();
+
+    $courseid = optional_param('courseid', 0, PARAM_INT);
+    $startdate = optional_param('startdate', '', PARAM_RAW) ?? $default_date;
+    $enddate = optional_param('startdate', '', PARAM_RAW) ?? $default_date;
+
+    // echo "<pre>";
+    // var_dump($courseid);
+    // echo "</pre>";
+    // die();
+
+    // if (!empty($courseid)) {
+    //   $course = $DB->get_record('course', ['id' => $courseid], 'id, fullname, shortname', MUST_EXIST);
+    //
+    //   echo "<pre>";
+    //   var_dump([
+    //     'courseid' => $courseid,
+    //     'coursename' => $course->fullname
+    //   ]);
+    //   echo "</pre>";
+    //   die();
+    // }
 
     // build template data
     $data->isteacher = $isTeacher;
     $data->userid = $USER->id;
     $data->fullname = fullname($USER);
-    $data->courseid = $this->course->id ?? 0;
+    $data->courseid = $courseid;
 
     // structure courses data
     foreach ($courses as $course) {
@@ -105,25 +128,38 @@ class main implements renderable, templatable
     ];
 
     $behaviour_grades = new CoursePerformanceFeedback();
-
+    $behaviour_grades_params = [
+      'gradethreshold' => 70,
+      'courseid' => $courseid
+    ];
     // TODO: Find a better way to pass grade threshold and response timeframe
-    $activity_behaviour = $behaviour_grades->query_behaviour_data([70, 30]);
-    // $behaviour_grades_chart = $output->render($behaviour_grades->create_bar_chart($activity_behaviour));
+    $activity_behaviour = $behaviour_grades->query_behaviour_data($behaviour_grades_params);
     $behaviour_grades_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour));
 
     $personalized_feedback = new PersonalizedFeedback();
-
+    $personalized_feedback_params = [
+      'gradethreshold' => 70,
+      'courseid' => $courseid
+    ];
     // TODO: Find a better way to pass grade threshold and uniqueness score 
-    $activity_behaviour_personalized_feedback = $personalized_feedback->query_behaviour_data([70, 0.60]);
-    $personalized_feedback_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour_personalized_feedback));
+    $activity_behaviour_personalized_feedback = $personalized_feedback->query_behaviour_data($personalized_feedback_params);
+    $personalized_feedback_chart = $output->render($personalized_feedback->create_pie_chart($activity_behaviour_personalized_feedback));
 
     $timely_feedback = new TimelyFeedback();
+    $timely_feedback_params = [
+      'gradethreshold' => 70,
+      'days' => 8,
+      'courseid' => $courseid
+    ];
     // TODO: Find a better way to pass grade threshold and feedback timeframe (days)
-    $activity_behaviour_timely_feedback = $timely_feedback->query_behaviour_data([70, 8]);
+    $activity_behaviour_timely_feedback = $timely_feedback->query_behaviour_data($timely_feedback_params);
     $timely_feedback_chart = $output->render($timely_feedback->create_pie_chart($activity_behaviour_timely_feedback));
 
     $monitoring_forums = new MonitoringForums();
-    $activity_behaviour_monitoring_forums = $monitoring_forums->query_behaviour_data([]);
+    $monitoring_forums_params = [
+      'courseid' => $courseid
+    ];
+    $activity_behaviour_monitoring_forums = $monitoring_forums->query_behaviour_data($monitoring_forums_params);
     $monitoring_forums_chart = $output->render($monitoring_forums->create_pie_chart($activity_behaviour_monitoring_forums));
 
     // structure teacher behaviours data
@@ -142,7 +178,8 @@ class main implements renderable, templatable
       ],
       [
         "name" => "Monitoring Forums",
-        "chart" => $monitoring_forums_chart,
+        // "chart" => $monitoring_forums_chart,
+        "chart" => null
       ],
     ];
 
@@ -170,15 +207,15 @@ class main implements renderable, templatable
     $time_spent_assign->query_behaviour_data();
     $time_spent_assign_chart = $output->render($time_spent_assign->create_bar_chart());
 
-    $lo_acccess_frequency = new LOAccessFrequency();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $lo_acccess_frequency->query_behaviour_data();
-    $lo_acccess_frequency_chart = $output->render($lo_acccess_frequency->create_bar_chart());
+    // $lo_acccess_frequency = new LOAccessFrequency();
+    // // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    // $lo_acccess_frequency->query_behaviour_data();
+    // $lo_acccess_frequency_chart = $output->render($lo_acccess_frequency->create_bar_chart());
 
-    $forum_posting_frequency = new ForumPostingFrequency();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $forum_posting_frequency->query_behaviour_data();
-    $forum_posting_frequency_chart = $output->render($forum_posting_frequency->create_bar_chart());
+    // $forum_posting_frequency = new ForumPostingFrequency();
+    // // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    // $forum_posting_frequency->query_behaviour_data();
+    // $forum_posting_frequency_chart = $output->render($forum_posting_frequency->create_bar_chart());
 
     $time_spent_lo = new TimeSpentLO();
     // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
@@ -212,14 +249,14 @@ class main implements renderable, templatable
         "name" => "Time spent on assignments",
         "chart" => $time_spent_assign_chart,
       ],
-      [
-        "name" => "Learning object access frequency",
-        "chart" => $lo_acccess_frequency_chart,
-      ],
-      [
-        "name" => "Forum posting frequency",
-        "chart" => $forum_posting_frequency_chart,
-      ],
+      // [
+      //   "name" => "Learning object access frequency",
+      //   "chart" => $lo_acccess_frequency_chart,
+      // ],
+      // [
+      //   "name" => "Forum posting frequency",
+      //   "chart" => $forum_posting_frequency_chart,
+      // ],
       [
         "name" => "Time spent accessing learning objects",
         "chart" => $time_spent_lo_chart,
@@ -228,20 +265,11 @@ class main implements renderable, templatable
         "name" => "Number of forums viewed",
         "chart" => $num_forums_viewed_chart,
       ],
-      [
-        "name" => "Forum posting consistency",
-        "chart" => null,
-      ],
-      [
-        "name" => "Quiz consistency",
-        "chart" => null,
-      ]
+      // [
+      //   "name" => "Forum posting consistency",
+      //   "chart" => null,
+      // ],
     ];
-
-    // echo "<pre>";
-    // var_dump($data->behaviours);
-    // echo "</pre>";
-    // die();
 
     return $data;
   }

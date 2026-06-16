@@ -33,14 +33,30 @@
     }
 }}
 
-<div class="d-inline-flex align-items-center">
-  <span class="mr-4 fs-4 text-nowrap">Select courses:</span>
+<form method="get">
+  <div class="d-inline-flex align-items-center">
+    <span class="mr-4 fs-4 text-nowrap">Select courses:</span>
 
-  <select id="course-select-{{uniqid}}" class="form-select" name="courseid">
-    {{#courses}}
-      <option value="{{id}}">
-        {{name}}
+    <select id="course-select-{{uniqid}}" class="form-select" name="courseid">
+      <option value="" selected disabled>
+        Select a course...
       </option>
-    {{/courses}}
-  </select>
-</div>
+
+      {{#courses}}
+        <option value="{{id}}">
+          {{name}}
+        </option>
+      {{/courses}}
+    </select>
+
+    <div class="d-flex align-items-center ml-auto">
+      <div class="d-flex align-items-center">
+        <button id="apply-date-filter-{{uniqid}}" type="submit" class="btn btn-primary mr-2">Apply</button>
+      </div>
+
+      <div class="d-flex align-items-center">
+        <button id="reset-date-filter-{{uniqid}}" type="submit" class="btn btn-secondary mr-2">Clear</button>
+      </div>
+    </div>
+  </div>
+</form>

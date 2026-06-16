@@ -81,13 +81,13 @@ class TimelyFeedback extends TeacherBehaviourPattern
         student_id ASC;
     ";
 
-    $response_days_in_seconds = (int)$params[1] * 86400;
+    $response_days_in_seconds = (int)$params['days'] * 86400;
 
     $records = $DB->get_records_sql($sql, [
       // TODO: replace with something better than array index
-      'gradethreshold' => $params[0],
+      'gradethreshold' => $params['gradethreshold'],
       'teacherid' => $USER->id,
-      'courseid' => 3
+      'courseid' => $params['courseid']
     ]);
 
     $data = new stdClass();
