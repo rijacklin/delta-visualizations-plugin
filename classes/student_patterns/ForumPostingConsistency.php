@@ -38,36 +38,97 @@ class ForumPostingConsistency extends StudentBehaviourPattern
   {
     global $DB;
 
-    $now = time();
+    // get course end date for student (#TODO: how to do this dynamically?)
+    $course_end_date = 1782144060;  // Monday June 22, 12:01 AM
+
+    // two-week cutoff (#TODO: pass  user-defined cut-off?)
+    $cutoff_date = $course_end_date - (2 * WEEKSECS);
 
     // TODO: Grab actual courseid from template
     $courseid = 3;
 
-    switch ($this->time_range) {
-      case TimeRange::HOURLY:
-        $start_time = $now - HOURSECS;
-        break;
-      case TimeRange::DAILY:
-        $start_time = $now - DAYSECS;
-        break;
-      case TimeRange::WEEKLY:
-        $start_time = $now - WEEKSECS;
-        break;
-      default:
-        $start_time = 0;
-        break;
-    }
-
     $sql = "
+      SELECT
+        fp.userid,
+        SUM(
+          CASE
+            WHEN fp.created >= c.startdate
+              AND fp.created < :cutoffdate1
+            THEN 1
+            ELSE 0
+          END
+        ) AS posts_before,
+        SUM(
+          CASE
+            WHEN fp.created >= :cutoffdate2
+              AND fp.created <= :courseenddate1
+            THEN 1
+            ELSE 0
+          END
+        ) AS posts_after,
+        COUNT(fp.id) AS total_posts
+      FROM {forum_posts} fp
+      JOIN {forum_discussions} fd
+        ON fd.id = fp.discussion
+      JOIN {course} c
+        ON c.id = fd.course
+      WHERE fp.userid IS NOT NULL
+        AND fd.course = :courseid
+        AND fp.created >= c.startdate
+        AND fp.created <= :courseenddate2
+      GROUP BY fp.userid
+      ORDER BY fp.userid ASC
     ";
 
     $records = $DB->get_records_sql($sql, [
       // TODO: Grab actual courseid from template
       'courseid' => $courseid,
-      'starttime' => $start_time
+      // TODO: Modify so that 1 and 2 aren't being used to differentiate repeated variables
+      'courseenddate1' => $course_end_date,
+      'courseenddate2' => $course_end_date,
+      'cutoffdate1' => $cutoff_date,
+      'cutoffdate2' => $cutoff_date
     ]);
 
     $this->records = $records;
+  }
+
+  public function create_line_chart(): \core\chart_line
+  {
+    $data = $this->records;
+
+    $students = [];
+    $posts_before = [];
+    $posts_after = [];
+
+    foreach ($data as $student_id => $value) {
+      $students[] = intval($student_id);
+      $posts_before[] = intval($value->posts_before);
+      $posts_after[] = intval($value->posts_after);
+    }
+
+    $chart = new \core\chart_line();
+
+    // x-axis
+    $chart->set_labels($students);
+
+    // y-axis
+    $before_series = new \core\chart_series('Posts Before Cutoff', $posts_before);
+    $chart->add_series($before_series);
+
+    $after_series = new \core\chart_series('Posts After Cutoff', $posts_after);
+    $chart->add_series($after_series);
+
+    $xaxis = $chart->get_xaxis(0, true);
+    $xaxis->set_label("Student ID");
+
+    $yaxis = $chart->get_yaxis(0, true);
+    $yaxis->set_label("Posts Before/After Cutoff");
+    $yaxis->set_min(0);
+    $yaxis->set_max(100);
+    $yaxis->set_stepsize(10);
+
+    return $chart;
   }
 
   public function create_bar_chart(): \core\chart_bar
@@ -75,11 +136,13 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     $data = $this->records;
 
     $students = [];
-    $count = [];
+    $posts_before = [];
+    $posts_after = [];
 
     foreach ($data as $student_id => $value) {
       $students[] = intval($student_id);
-      $count[] = intval($value->count);
+      $posts_before[] = intval($value->posts_before);
+      $posts_after[] = intval($value->posts_after);
     }
 
     $chart = new \core\chart_bar();
@@ -88,14 +151,17 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     $chart->set_labels($students);
 
     // y-axis
-    $series = new \core\chart_series('Number of Forum Postings', $count);
-    $chart->add_series($series);
+    $before_series = new \core\chart_series('Posts Before Cutoff', $posts_before);
+    $chart->add_series($before_series);
+
+    $after_series = new \core\chart_series('Posts After Cutoff', $posts_after);
+    $chart->add_series($after_series);
 
     $xaxis = $chart->get_xaxis(0, true);
     $xaxis->set_label("Student ID");
 
     $yaxis = $chart->get_yaxis(0, true);
-    $yaxis->set_label("Number of Forum Postings");
+    $yaxis->set_label("Posts Before/After Cutoff");
     $yaxis->set_min(0);
     $yaxis->set_max(100);
     $yaxis->set_stepsize(10);

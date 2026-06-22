@@ -38,25 +38,8 @@ class NumberForumPosts extends StudentBehaviourPattern
   {
     global $DB;
 
-    $now = time();
-
     // TODO: Grab actual courseid from template
     $courseid = 3;
-
-    switch ($this->time_range) {
-      case TimeRange::HOURLY:
-        $start_time = $now - HOURSECS;
-        break;
-      case TimeRange::DAILY:
-        $start_time = $now - DAYSECS;
-        break;
-      case TimeRange::WEEKLY:
-        $start_time = $now - WEEKSECS;
-        break;
-      default:
-        $start_time = 0;
-        break;
-    }
 
     $sql = "
       SELECT
@@ -67,8 +50,6 @@ class NumberForumPosts extends StudentBehaviourPattern
         ON fd.id = fp.discussion
       WHERE fp.userid IS NOT null
         AND fd.course = :courseid
-        -- Filter by hourly/daily/weekly
-        AND fp.created >= :starttime
       GROUP BY fp.userid
       ORDER BY fp.userid ASC
     ";
@@ -76,7 +57,6 @@ class NumberForumPosts extends StudentBehaviourPattern
     $records = $DB->get_records_sql($sql, [
       // TODO: Grab actual courseid from template
       'courseid' => $courseid,
-      'starttime' => $start_time
     ]);
 
     $this->records = $records;

@@ -26,6 +26,7 @@ namespace block_delta_visualizations\output;
 
 defined('MOODLE_INTERNAL') || die();
 
+use block_delta_visualizations\student_patterns\ForumPostingConsistency;
 use block_delta_visualizations\teacher_patterns\CoursePerformanceFeedback;
 use block_delta_visualizations\teacher_patterns\PersonalizedFeedback;
 use block_delta_visualizations\teacher_patterns\TimelyFeedback;
@@ -41,7 +42,7 @@ use block_delta_visualizations\student_patterns\TimeSpentForums;
 use block_delta_visualizations\student_patterns\TimeSpentLO;
 use block_delta_visualizations\student_patterns\TimeSpentAssignments;
 use block_delta_visualizations\student_patterns\NumberForumsViewed;
-
+use block_delta_visualizations\teacher_patterns\ConsistentUseLMS;
 use renderable;
 use renderer_base;
 use templatable;
@@ -86,23 +87,6 @@ class main implements renderable, templatable
     $courseid = optional_param('courseid', 0, PARAM_INT);
     $startdate = optional_param('startdate', '', PARAM_RAW) ?? $default_date;
     $enddate = optional_param('startdate', '', PARAM_RAW) ?? $default_date;
-
-    // echo "<pre>";
-    // var_dump($courseid);
-    // echo "</pre>";
-    // die();
-
-    // if (!empty($courseid)) {
-    //   $course = $DB->get_record('course', ['id' => $courseid], 'id, fullname, shortname', MUST_EXIST);
-    //
-    //   echo "<pre>";
-    //   var_dump([
-    //     'courseid' => $courseid,
-    //     'coursename' => $course->fullname
-    //   ]);
-    //   echo "</pre>";
-    //   die();
-    // }
 
     // build template data
     $data->isteacher = $isTeacher;
@@ -164,6 +148,14 @@ class main implements renderable, templatable
     $activity_behaviour_monitoring_forums = $monitoring_forums->query_behaviour_data($monitoring_forums_params);
     $monitoring_forums_chart = $output->render($monitoring_forums->create_pie_chart($activity_behaviour_monitoring_forums));
 
+    $consistent_use_lms = new ConsistentUseLMS();
+    $consistent_use_params = [
+      'courseid' => $courseid,
+      'engagementthreshold' => 5,
+    ];
+    $activity_behaviour_consistent_use_lms = $consistent_use_lms->query_behaviour_data($consistent_use_params);
+    $consistent_use_lms_chart = $output->render($monitoring_forums->create_pie_chart($activity_behaviour_consistent_use_lms));
+
     // structure teacher behaviours data
     $data->teacher_behaviours = [
       [
@@ -181,6 +173,10 @@ class main implements renderable, templatable
       [
         "name" => "Monitoring Forums",
         "chart" => $monitoring_forums_chart,
+      ],
+      [
+        "name" => "Consistent Use of LMS",
+        "chart" => $consistent_use_lms_chart,
       ],
     ];
 
@@ -208,15 +204,15 @@ class main implements renderable, templatable
     $time_spent_assign->query_behaviour_data();
     $time_spent_assign_chart = $output->render($time_spent_assign->create_bar_chart());
 
-    // $lo_acccess_frequency = new LOAccessFrequency();
-    // // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    // $lo_acccess_frequency->query_behaviour_data();
-    // $lo_acccess_frequency_chart = $output->render($lo_acccess_frequency->create_bar_chart());
+    $lo_acccess_frequency = new LOAccessFrequency();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $lo_acccess_frequency->query_behaviour_data();
+    $lo_acccess_frequency_chart = $output->render($lo_acccess_frequency->create_bar_chart());
 
-    // $forum_posting_frequency = new ForumPostingFrequency();
-    // // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    // $forum_posting_frequency->query_behaviour_data();
-    // $forum_posting_frequency_chart = $output->render($forum_posting_frequency->create_bar_chart());
+    $forum_posting_frequency = new ForumPostingFrequency();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $forum_posting_frequency->query_behaviour_data();
+    $forum_posting_frequency_chart = $output->render($forum_posting_frequency->create_bar_chart());
 
     $time_spent_lo = new TimeSpentLO();
     // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
@@ -232,6 +228,12 @@ class main implements renderable, templatable
     // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
     $num_forum_posts->query_behaviour_data();
     $num_forum_posts_chart = $output->render($num_forum_posts->create_bar_chart());
+
+    $forum_posting_consistency = new ForumPostingConsistency();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $forum_posting_consistency->query_behaviour_data();
+    // $forum_posting_consistency_chart = $output->render($forum_posting_consistency->create_bar_chart());
+    $forum_posting_consistency_chart = $output->render($forum_posting_consistency->create_line_chart());
 
     // structure teacher view of student behaviours data
     $data->student_behaviours = [
@@ -255,14 +257,14 @@ class main implements renderable, templatable
         "name" => "Time spent on assignments",
         "chart" => $time_spent_assign_chart,
       ],
-      // [
-      //   "name" => "Learning object access frequency",
-      //   "chart" => $lo_acccess_frequency_chart,
-      // ],
-      // [
-      //   "name" => "Forum posting frequency",
-      //   "chart" => $forum_posting_frequency_chart,
-      // ],
+      [
+        "name" => "Learning object access frequency",
+        "chart" => $lo_acccess_frequency_chart,
+      ],
+      [
+        "name" => "Forum posting frequency",
+        "chart" => $forum_posting_frequency_chart,
+      ],
       [
         "name" => "Time spent accessing learning objects",
         "chart" => $time_spent_lo_chart,
@@ -275,10 +277,10 @@ class main implements renderable, templatable
         "name" => "Number of forum posts",
         "chart" => $num_forum_posts_chart,
       ],
-      // [
-      //   "name" => "Forum posting consistency",
-      //   "chart" => null,
-      // ],
+      [
+        "name" => "Forum posting consistency",
+        "chart" => $forum_posting_consistency_chart,
+      ],
     ];
 
     return $data;

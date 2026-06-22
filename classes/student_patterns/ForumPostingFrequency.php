@@ -63,13 +63,13 @@ class ForumPostingFrequency extends StudentBehaviourPattern
         fp.userid,
         COUNT(fp.id)
       FROM {forum_posts} fp
-      JOIN {forum} f
-        ON f.id = fp.discussion
+      JOIN {forum_discussions} fd
+        ON fd.id = fp.discussion
       WHERE fp.userid IS NOT null
-        AND f.course = :courseid
+        AND fd.course = :courseid
         -- Filter by hourly/daily/weekly
-        AND f.timemodified >= :starttime
-      GROUP BY fp.id
+        AND fp.created >= :starttime
+      GROUP BY fp.userid
       ORDER BY fp.userid ASC
     ";
 

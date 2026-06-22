@@ -17,6 +17,8 @@
 /**
  * Models teacher behaviour: Consistent Use of LMS
  *
+ * This behaviour is exhibited when the teacher interacts with the course a given threshold number of times each week.
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -40,31 +42,58 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
   {
     global $DB, $USER;
 
-    $sql = "";
+    // TODO: Replace with dynamic start and end dates
+    $course_start = 1778540400;
+    $course_end = time();
+    $num_weeks = intval(($course_end - $course_start) / WEEKSECS);
 
-    $response_days_in_seconds = (int)$params['days'] * 86400;
+    $sql = "
+      WITH teacher_course_logs AS (
+        SELECT
+          l.id,
+          l.userid,
+          l.courseid,
+          l.component,
+          l.action,
+          l.target,
+          l.crud,
+          l.timecreated
+        FROM {logstore_standard_log} l
+        WHERE l.courseid = :courseid
+          AND l.userid = :userid
+          AND l.timecreated >= :starttime
+          AND l.timecreated <= :endtime
+      )
+      SELECT
+        l.userid,
+        COUNT(l.id) AS total_teacher_interactions,
+        COUNT(l.id) / :periodweeks AS interactions_per_week
+      FROM teacher_course_logs l 
+      GROUP BY l.userid
+      ORDER BY total_teacher_interactions DESC;
+    ";
 
     $records = $DB->get_records_sql($sql, [
       // TODO: replace with something better than array index
-      'gradethreshold' => $params['gradethreshold'],
-      'teacherid' => $USER->id,
-      'courseid' => $params['courseid']
+      'userid' => $USER->id,
+      'courseid' => $params['courseid'],
+      'periodweeks' => $num_weeks,
+      'starttime' => $course_start,
+      'endtime' => $course_end
     ]);
 
     $data = new stdClass();
 
     // iterate over feedback
-    foreach ($records as $feedback) {
+    foreach ($records as $interactions) {
       // Grab feedback properties
-      $graded_date = $feedback->graded_date;
-      $submission_date = $feedback->submission_date;
-      $student_id = $feedback->student_id;
+      $interactions_per_unit = $interactions->interactions_per_week;
 
       // check to see if feedback sufficiently personalized/unique
-      if ($graded_date <= ($submission_date + $response_days_in_seconds)) {
-        $data->{$student_id} = ActivityBehaviour::Exhibited;
+      if ($interactions_per_unit > $params['engagementthreshold']) {
+        $data->{$teacher_id} = ActivityBehaviour::Exhibited;
       } else {
-        $data->{$student_id} = ActivityBehaviour::NotExhibited;
+        $data->{$teacher_id} = ActivityBehaviour::NotExhibited;
       }
     }
 
