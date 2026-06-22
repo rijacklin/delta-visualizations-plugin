@@ -34,6 +34,7 @@ use block_delta_visualizations\teacher_patterns\MonitoringForums;
 use block_delta_visualizations\student_patterns\ForumPostingFrequency;
 use block_delta_visualizations\student_patterns\LOAccessFrequency;
 use block_delta_visualizations\student_patterns\LoginFrequency;
+use block_delta_visualizations\student_patterns\NumberForumPosts;
 use block_delta_visualizations\student_patterns\StudentActiveTime;
 use block_delta_visualizations\student_patterns\StudentInactiveTime;
 use block_delta_visualizations\student_patterns\TimeSpentForums;
@@ -139,7 +140,8 @@ class main implements renderable, templatable
     $personalized_feedback = new PersonalizedFeedback();
     $personalized_feedback_params = [
       'gradethreshold' => 70,
-      'courseid' => $courseid
+      'courseid' => $courseid,
+      'feedbackgoal' => 60
     ];
     // TODO: Find a better way to pass grade threshold and uniqueness score 
     $activity_behaviour_personalized_feedback = $personalized_feedback->query_behaviour_data($personalized_feedback_params);
@@ -178,8 +180,7 @@ class main implements renderable, templatable
       ],
       [
         "name" => "Monitoring Forums",
-        // "chart" => $monitoring_forums_chart,
-        "chart" => null
+        "chart" => $monitoring_forums_chart,
       ],
     ];
 
@@ -227,6 +228,11 @@ class main implements renderable, templatable
     $num_forums_viewed->query_behaviour_data();
     $num_forums_viewed_chart = $output->render($num_forums_viewed->create_bar_chart());
 
+    $num_forum_posts = new NumberForumPosts();
+    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
+    $num_forum_posts->query_behaviour_data();
+    $num_forum_posts_chart = $output->render($num_forum_posts->create_bar_chart());
+
     // structure teacher view of student behaviours data
     $data->student_behaviours = [
       [
@@ -264,6 +270,10 @@ class main implements renderable, templatable
       [
         "name" => "Number of forums viewed",
         "chart" => $num_forums_viewed_chart,
+      ],
+      [
+        "name" => "Number of forum posts",
+        "chart" => $num_forum_posts_chart,
       ],
       // [
       //   "name" => "Forum posting consistency",

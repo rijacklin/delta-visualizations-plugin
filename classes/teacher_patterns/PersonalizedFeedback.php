@@ -82,7 +82,7 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
     ]);
 
     // TODO: replace with something better than array index
-    $feedback_goal = $params[1];
+    $feedback_goal = $params['feedbackgoal'];
 
     $data = new stdClass();
 

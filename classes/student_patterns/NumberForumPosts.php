@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Models student behaviour: Number of Forums Viewed
+ * Models student behaviour: Number of Forum Posts
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
@@ -30,7 +30,7 @@ defined('MOODLE_INTERNAL') || die();
  * Creates a renderer for the block_delta_visualizations
  *
  */
-class NumberForumsViewed extends StudentBehaviourPattern
+class NumberForumPosts extends StudentBehaviourPattern
 {
   use BarChart;
 
@@ -60,17 +60,17 @@ class NumberForumsViewed extends StudentBehaviourPattern
 
     $sql = "
       SELECT
-        fr.userid,
-        COUNT(DISTINCT fr.postid)
-      FROM {forum_read} fr
-      JOIN {forum} f
-        ON f.id = fr.forumid
-      WHERE fr.userid IS NOT null
-        AND f.course = :courseid
+        fp.userid,
+        COUNT(fp.id)
+      FROM {forum_posts} fp
+      JOIN {forum_discussions} fd
+        ON fd.id = fp.discussion
+      WHERE fp.userid IS NOT null
+        AND fd.course = :courseid
         -- Filter by hourly/daily/weekly
-        AND fr.lastread >= :starttime
-      GROUP BY fr.userid
-      ORDER BY fr.userid ASC
+        AND fp.created >= :starttime
+      GROUP BY fp.userid
+      ORDER BY fp.userid ASC
     ";
 
     $records = $DB->get_records_sql($sql, [
@@ -90,11 +90,6 @@ class NumberForumsViewed extends StudentBehaviourPattern
     $count = [];
 
     foreach ($data as $student_id => $value) {
-      // echo "<pre>";
-      // var_dump([$student_id, $value->count]);
-      // echo "</pre>";
-      // die();
-
       $students[] = intval($student_id);
       $count[] = intval($value->count);
     }
@@ -105,7 +100,7 @@ class NumberForumsViewed extends StudentBehaviourPattern
     $chart->set_labels($students);
 
     // y-axis
-    $series = new \core\chart_series('Number of Forums Viewed', $count);
+    $series = new \core\chart_series('Number of Forum Posts', $count);
     $chart->add_series($series);
 
     $xaxis = $chart->get_xaxis(0, true);
