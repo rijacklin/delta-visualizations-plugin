@@ -34,29 +34,29 @@
 }}
 
 <form method="get">
-  <div class="d-inline-flex align-items-center">
-    <span class="mr-4 fs-4 text-nowrap">Select courses:</span>
+  <div class="d-flex align-items-center gap-4">
+    <label for="course-select-{{uniqid}}" class="mr-4 fs-4 text-nowrap mb-0">
+      Select courses:
+    </label>
 
-    <select id="course-select-{{uniqid}}" class="form-select" name="courseid">
-      <option value="" selected disabled>
-        Select a course...
-      </option>
-
-      {{#courses}}
-        <option value="{{id}}">
-          {{name}}
-        </option>
-      {{/courses}}
-    </select>
-
-    <div class="d-flex align-items-center ml-auto">
-      <div class="d-flex align-items-center">
-        <button id="apply-date-filter-{{uniqid}}" type="submit" class="btn btn-primary mr-2">Apply</button>
-      </div>
-
-      <div class="d-flex align-items-center">
-        <button id="reset-date-filter-{{uniqid}}" type="submit" class="btn btn-secondary mr-2">Clear</button>
-      </div>
+    <div class="flex-grow-1">
+      <select id="course-select-{{uniqid}}" class="form-control" name="courseids[]" multiple="multiple" data-enhance="moodle-autocomplete" data-placeholder="Select One or More Courses">
+        {{#courses}}
+          <option value="{{id}}" {{#selected}}selected{{/selected}}>
+            {{name}}
+          </option>
+        {{/courses}}
+      </select>
     </div>
+
+    <button type="submit" class="btn btn-primary">
+      Apply
+    </button>
   </div>
 </form>
+
+{{#js}}
+require(['block_delta_visualizations/course_selector'], function(selector) {
+  selector.init('#course-select-{{uniqid}}');
+});
+{{/js}}

@@ -26,12 +26,14 @@ namespace block_delta_visualizations\output;
 
 defined('MOODLE_INTERNAL') || die();
 
+// teacher-behaviour pattern classes
 use block_delta_visualizations\student_patterns\ForumPostingConsistency;
 use block_delta_visualizations\teacher_patterns\CoursePerformanceFeedback;
 use block_delta_visualizations\teacher_patterns\PersonalizedFeedback;
 use block_delta_visualizations\teacher_patterns\TimelyFeedback;
 use block_delta_visualizations\teacher_patterns\MonitoringForums;
 
+// student-behaviour pattern classes
 use block_delta_visualizations\student_patterns\ForumPostingFrequency;
 use block_delta_visualizations\student_patterns\LOAccessFrequency;
 use block_delta_visualizations\student_patterns\LoginFrequency;
@@ -43,6 +45,7 @@ use block_delta_visualizations\student_patterns\TimeSpentLO;
 use block_delta_visualizations\student_patterns\TimeSpentAssignments;
 use block_delta_visualizations\student_patterns\NumberForumsViewed;
 use block_delta_visualizations\teacher_patterns\ConsistentUseLMS;
+
 use renderable;
 use renderer_base;
 use templatable;
@@ -51,7 +54,7 @@ use stdClass;
 class main implements renderable, templatable
 {
   private \context $context;
-  private \stdClass $course;
+  private array $courseids;
 
   /**
    * Constructor.
@@ -59,10 +62,10 @@ class main implements renderable, templatable
    * @param: $filter (patternset_filter) - the filter object being used to trim the patternset data
    * @return: None
    */
-  public function __construct(\context $context, \stdClass $course)
+  public function __construct(array $courseids, \context $context)
   {
+    $this->courseids = array_values(array_map('intval', $courseids));
     $this->context = $context;
-    $this->course = $course;
   }
 
   /**
@@ -75,32 +78,17 @@ class main implements renderable, templatable
   {
     global $USER, $DB;
 
-    $courses = \enrol_get_users_courses($USER->id, true);
-
-    // check if teacher
-    $isTeacher = $this->check_if_teacher($courses);
-
     $default_date = date('Y-m-d');
 
     $data = new stdClass();
 
-    $courseid = optional_param('courseid', 0, PARAM_INT);
-    $startdate = optional_param('startdate', '', PARAM_RAW) ?? $default_date;
-    $enddate = optional_param('startdate', '', PARAM_RAW) ?? $default_date;
-
     // build template data
-    $data->isteacher = $isTeacher;
     $data->userid = $USER->id;
     $data->fullname = fullname($USER);
-    $data->courseid = $courseid;
-
-    // structure courses data
-    foreach ($courses as $course) {
-      $data->courses[] = [
-        'id' => $course->id,
-        'name' => $course->shortname
-      ];
-    }
+    $data->courses = $this->get_courses_for_selector($USER->id);
+    $data->courseids = array_column($data->courses, 'id');
+    $data->isteacher = $this->check_if_teacher($data->courses);
+    $data->selected_courseids = $this->get_selected_courseids($data->courses);
 
     // dates
     $data->startdate = date('Y-m-d');
@@ -112,179 +100,257 @@ class main implements renderable, templatable
       ["id" => "tab2", "name" => "Instructor View of Student Behaviour", "content" => "Instructor-Student behaviours"]
     ];
 
+    /**
+     * TEACHER BEHAVIOURS
+     */
+
+    $data->teacher_behaviours = [];
+
     $behaviour_grades = new CoursePerformanceFeedback();
-    $behaviour_grades_params = [
+    $behaviour_grades_chart = $behaviour_grades->generate_behaviour_pie_chart([
       'gradethreshold' => 70,
-      'courseid' => $courseid
-    ];
-    // TODO: Find a better way to pass grade threshold and response timeframe
-    $activity_behaviour = $behaviour_grades->query_behaviour_data($behaviour_grades_params);
-    $behaviour_grades_chart = $output->render($behaviour_grades->create_pie_chart($activity_behaviour));
+      'courseids' => $data->selected_courseids
+    ]);
+    if ($behaviour_grades_chart instanceof \core\chart_base) {
+      $data->teacher_behaviours[] = [
+        'name' => "Messaging struggling students - low grades",
+        'chart' => $output->render($behaviour_grades_chart)
+      ];
+    }
 
     $personalized_feedback = new PersonalizedFeedback();
-    $personalized_feedback_params = [
+    $personalized_feedback_chart = $personalized_feedback->generate_behaviour_pie_chart([
       'gradethreshold' => 70,
-      'courseid' => $courseid,
+      'courseids' => $data->selected_courseids,
       'feedbackgoal' => 60
-    ];
-    // TODO: Find a better way to pass grade threshold and uniqueness score 
-    $activity_behaviour_personalized_feedback = $personalized_feedback->query_behaviour_data($personalized_feedback_params);
-    $personalized_feedback_chart = $output->render($personalized_feedback->create_pie_chart($activity_behaviour_personalized_feedback));
+    ]);
+    if ($personalized_feedback_chart instanceof \core\chart_base) {
+      $data->teacher_behaviours[] = [
+        'name' => "Personalized Feedback",
+        'chart' => $output->render($personalized_feedback_chart)
+      ];
+    }
 
     $timely_feedback = new TimelyFeedback();
-    $timely_feedback_params = [
+    $timely_feedback_chart = $timely_feedback->generate_behaviour_pie_chart([
       'gradethreshold' => 70,
       'days' => 8,
-      'courseid' => $courseid
-    ];
-    // TODO: Find a better way to pass grade threshold and feedback timeframe (days)
-    $activity_behaviour_timely_feedback = $timely_feedback->query_behaviour_data($timely_feedback_params);
-    $timely_feedback_chart = $output->render($timely_feedback->create_pie_chart($activity_behaviour_timely_feedback));
+      'courseids' => $data->selected_courseids
+    ]);
+    if ($timely_feedback_chart instanceof \core\chart_base) {
+      $data->teacher_behaviours[] = [
+        'name' => "Timely Feedback",
+        'chart' => $output->render($timely_feedback_chart)
+      ];
+    }
 
     $monitoring_forums = new MonitoringForums();
-    $monitoring_forums_params = [
-      'courseid' => $courseid
-    ];
-    $activity_behaviour_monitoring_forums = $monitoring_forums->query_behaviour_data($monitoring_forums_params);
-    $monitoring_forums_chart = $output->render($monitoring_forums->create_pie_chart($activity_behaviour_monitoring_forums));
+    $monitoring_forums_chart = $monitoring_forums->generate_behaviour_pie_chart([
+      'courseids' => $data->selected_courseids
+    ]);
+    if ($monitoring_forums_chart instanceof \core\chart_base) {
+      $data->teacher_behaviours[] = [
+        'name' => "Monitoring Forums",
+        'chart' => $output->render($monitoring_forums_chart)
+      ];
+    }
 
-    $consistent_use_lms = new ConsistentUseLMS();
-    $consistent_use_params = [
-      'courseid' => $courseid,
-      'engagementthreshold' => 5,
-    ];
-    $activity_behaviour_consistent_use_lms = $consistent_use_lms->query_behaviour_data($consistent_use_params);
-    $consistent_use_lms_chart = $output->render($monitoring_forums->create_pie_chart($activity_behaviour_consistent_use_lms));
+    $consistent_use_lms = new ConsistentUseLMS($output);
+    $consistent_use_lms_chart = $consistent_use_lms->generate_behaviour_pie_chart([
+      'courseids' => $data->selected_courseids,
+      'engagementthreshold' => 5
+    ]);
+    if ($consistent_use_lms_chart instanceof \core\chart_base) {
+      $data->teacher_behaviours[] = [
+        'name' => "Consistent Use of LMS",
+        'chart' => $output->render($consistent_use_lms_chart)
+      ];
+    }
 
-    // structure teacher behaviours data
-    $data->teacher_behaviours = [
-      [
-        "name" => "Messaging struggling students - low grades",
-        "chart" => $behaviour_grades_chart,
-      ],
-      [
-        "name" => "Personalized Feedback",
-        "chart" => $personalized_feedback_chart,
-      ],
-      [
-        "name" => "Timely Feedback",
-        "chart" => $timely_feedback_chart,
-      ],
-      [
-        "name" => "Monitoring Forums",
-        "chart" => $monitoring_forums_chart,
-      ],
-      [
-        "name" => "Consistent Use of LMS",
-        "chart" => $consistent_use_lms_chart,
-      ],
-    ];
+    /**
+     * STUDENT BEHAVIOURS
+     */
 
     $login_frequency = new LoginFrequency();
-    $login_frequency->query_behaviour_data();
-    $login_frequency_chart = $output->render($login_frequency->create_bar_chart());
+    $login_frequency_chart = $login_frequency->generate_chart([
+      "chart_type" => '\core\chart_bar'
+    ]);
+    $data->student_behaviours[] = [
+      'name' => "Login frequency",
+      'chart' => !empty($login_frequency->get_records()) ? $output->render($login_frequency_chart) : "NO DATA"
+    ];
 
     $student_active_time = new StudentActiveTime();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $student_active_time->query_behaviour_data();
-    $student_active_time_chart = $output->render($student_active_time->create_bar_chart());
+    $student_active_time_chart = $student_active_time->generate_behaviour_chart([
+      'courseids' => $data->selected_courseids,
+      'chart_type' => '\core\chart_bar'
+    ]);
+    if ($student_active_time_chart instanceof \core\chart_base) {
+      $data->student_behaviours[] = [
+        'name' => "Student active time",
+        'chart' => !empty($student_active_time->get_records()) ? $output->render($student_active_time_chart) : "NO DATA"
+      ];
+    }
 
+    // TODO: Why is this not tied to course?
     $student_inactive_time = new StudentInactiveTime();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $student_inactive_time->query_behaviour_data();
-    $student_inactive_time_chart = $output->render($student_inactive_time->create_bar_chart());
+    $student_inactive_time_chart = $student_inactive_time->generate_chart([
+      "chart_type" => '\core\chart_bar'
+    ]);
+    $data->student_behaviours[] = [
+      'name' => "Student inactive time",
+      'chart' => !empty($student_inactive_time->get_records()) ? $output->render($student_inactive_time_chart) : "NO DATA"
+    ];
 
     $time_spent_forums = new TimeSpentForums();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $time_spent_forums->query_behaviour_data();
-    $time_spent_forums_chart = $output->render($time_spent_forums->create_bar_chart());
+    $time_spent_forums_chart = $time_spent_forums->generate_behaviour_chart([
+      'courseids' => $data->selected_courseids,
+      "chart_type" => '\core\chart_bar'
+    ]);
+    if ($time_spent_forums_chart instanceof \core\chart_base) {
+      $data->student_behaviours[] = [
+        'name' => "Time spent viewing forums",
+        'chart' => !empty($time_spent_forums->get_records()) ? $output->render($time_spent_forums_chart) : "NO DATA"
+      ];
+    }
 
-    $time_spent_assign = new TimeSpentAssignments();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $time_spent_assign->query_behaviour_data();
-    $time_spent_assign_chart = $output->render($time_spent_assign->create_bar_chart());
+    $time_spent_assignments = new TimeSpentForums();
+    $time_spent_assignments_chart = $time_spent_assignments->generate_behaviour_chart([
+      'courseids' => $data->selected_courseids,
+      "chart_type" => '\core\chart_bar'
+    ]);
+    if ($time_spent_assignments_chart instanceof \core\chart_base) {
+      $data->student_behaviours[] = [
+        'name' => "Time spent on assignments",
+        'chart' => !empty($time_spent_assignments->get_records()) ? $output->render($time_spent_assignments_chart) : "NO DATA"
+      ];
+    }
 
-    $lo_acccess_frequency = new LOAccessFrequency();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $lo_acccess_frequency->query_behaviour_data();
-    $lo_acccess_frequency_chart = $output->render($lo_acccess_frequency->create_bar_chart());
+    $lo_access_frequency = new LOAccessFrequency();
+    $lo_access_frequency_chart = $lo_access_frequency->generate_behaviour_chart([
+      'courseids' => $data->selected_courseids,
+      "chart_type" => '\core\chart_bar'
+    ]);
+    if ($lo_access_frequency_chart instanceof \core\chart_base) {
+      $data->student_behaviours[] = [
+        'name' => "Learning object access frequency",
+        'chart' => !empty($lo_access_frequency->get_records()) ? $output->render($lo_access_frequency_chart) : "NO DATA"
+      ];
+    }
 
     $forum_posting_frequency = new ForumPostingFrequency();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $forum_posting_frequency->query_behaviour_data();
-    $forum_posting_frequency_chart = $output->render($forum_posting_frequency->create_bar_chart());
+    $forum_posting_frequency_chart = $forum_posting_frequency->generate_behaviour_chart([
+      'courseids' => $data->selected_courseids,
+      "chart_type" => '\core\chart_bar'
+    ]);
+    if ($forum_posting_frequency_chart instanceof \core\chart_base) {
+      $data->student_behaviours[] = [
+        'name' => "Forum posting frequency",
+        'chart' => !empty($forum_posting_frequency->get_records()) ? $output->render($forum_posting_frequency_chart) : "NO DATA"
+      ];
+    }
 
     $time_spent_lo = new TimeSpentLO();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $time_spent_lo->query_behaviour_data();
-    $time_spent_lo_chart = $output->render($time_spent_lo->create_bar_chart());
+    $time_spent_lo_chart = $time_spent_lo->generate_behaviour_chart([
+      'courseids' => $data->selected_courseids,
+      "chart_type" => '\core\chart_bar'
+    ]);
+    if ($time_spent_lo_chart instanceof \core\chart_base) {
+      $data->student_behaviours[] = [
+        'name' => "Time spent accessing learning objects",
+        'chart' => !empty($time_spent_lo->get_records()) ? $output->render($time_spent_lo_chart) : "NO DATA"
+      ];
+    }
 
-    $num_forums_viewed = new NumberForumsViewed();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $num_forums_viewed->query_behaviour_data();
-    $num_forums_viewed_chart = $output->render($num_forums_viewed->create_bar_chart());
+    $number_forums_viewed = new NumberForumsViewed();
+    $number_forums_viewed_chart = $number_forums_viewed->generate_behaviour_chart([
+      'courseids' => $data->selected_courseids,
+      "chart_type" => '\core\chart_bar'
+    ]);
+    if ($number_forums_viewed_chart instanceof \core\chart_base) {
+      $data->student_behaviours[] = [
+        'name' => "Number of forums viewed",
+        'chart' => !empty($number_forums_viewed->get_records()) ? $output->render($number_forums_viewed_chart) : "NO DATA"
+      ];
+    }
 
-    $num_forum_posts = new NumberForumPosts();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $num_forum_posts->query_behaviour_data();
-    $num_forum_posts_chart = $output->render($num_forum_posts->create_bar_chart());
+    $number_forum_posts = new NumberForumPosts();
+    $number_forum_posts_chart = $number_forum_posts->generate_behaviour_chart([
+      'courseids' => $data->selected_courseids,
+      "chart_type" => '\core\chart_bar'
+    ]);
+    if ($number_forum_posts_chart instanceof \core\chart_base) {
+      $data->student_behaviours[] = [
+        'name' => "Number of forum posts",
+        'chart' => !empty($number_forum_posts->get_records()) ? $output->render($number_forum_posts_chart) : "NO DATA"
+      ];
+    }
 
     $forum_posting_consistency = new ForumPostingConsistency();
-    // TODO: GET ACTUAL FILTER VALUE FROM TEMPLATE
-    $forum_posting_consistency->query_behaviour_data();
-    // $forum_posting_consistency_chart = $output->render($forum_posting_consistency->create_bar_chart());
-    $forum_posting_consistency_chart = $output->render($forum_posting_consistency->create_line_chart());
-
-    // structure teacher view of student behaviours data
-    $data->student_behaviours = [
-      [
-        "name" => "Login frequency",
-        "chart" => $login_frequency_chart,
-      ],
-      [
-        "name" => "Student active time",
-        "chart" => $student_active_time_chart,
-      ],
-      [
-        "name" => "Student inactive time",
-        "chart" => $student_inactive_time_chart,
-      ],
-      [
-        "name" => "Time spent viewing forums",
-        "chart" => $time_spent_forums_chart,
-      ],
-      [
-        "name" => "Time spent on assignments",
-        "chart" => $time_spent_assign_chart,
-      ],
-      [
-        "name" => "Learning object access frequency",
-        "chart" => $lo_acccess_frequency_chart,
-      ],
-      [
-        "name" => "Forum posting frequency",
-        "chart" => $forum_posting_frequency_chart,
-      ],
-      [
-        "name" => "Time spent accessing learning objects",
-        "chart" => $time_spent_lo_chart,
-      ],
-      [
-        "name" => "Number of forums viewed",
-        "chart" => $num_forums_viewed_chart,
-      ],
-      [
-        "name" => "Number of forum posts",
-        "chart" => $num_forum_posts_chart,
-      ],
-      [
-        "name" => "Forum posting consistency",
-        "chart" => $forum_posting_consistency_chart,
-      ],
-    ];
+    $forum_posting_consistency_chart = $forum_posting_consistency->generate_behaviour_chart([
+      'courseids' => $data->selected_courseids,
+      "chart_type" => '\core\chart_bar'
+    ]);
+    if ($forum_posting_consistency_chart instanceof \core\chart_base) {
+      $data->student_behaviours[] = [
+        'name' => "Forum posting consistency",
+        'chart' => !empty($forum_posting_consistency->get_records()) ? $output->render($forum_posting_consistency_chart) : "NO DATA"
+      ];
+    }
 
     return $data;
   }
+
+  protected function get_courses_for_selector(int $teacher_id): array
+  {
+    $courses = \enrol_get_users_courses($teacher_id, true);
+
+    // structure courses data
+    foreach ($courses as $course) {
+      $courseids[] = [
+        'id' => $course->id,
+        'name' => $course->shortname,
+        'selected' => in_array((int)$course->id, $this->courseids, true)
+      ];
+    }
+
+    return $courseids;
+  }
+
+  protected function get_selected_courseids(array $courses): array
+  {
+    $selected_course_ids = [];
+
+    foreach ($courses as $course) {
+      if ($course['selected']) {
+        $selected_course_ids[] = $course['id'];
+      }
+    }
+
+    return $selected_course_ids;
+  }
+
+  protected function get_hidden_params(): array
+  {
+    global $PAGE;
+
+    $hiddenparams = [];
+
+    foreach ($PAGE->url->params() as $name => $value) {
+      if ($name === 'courseids' || is_array($value)) continue;
+
+      $hiddenparams[] = [
+        'name' => $name,
+        'value' => $value
+      ];
+    }
+
+    return $hiddenparams;
+  }
+
+  // protected function generate_behaviour_chart() {
+  //
+  // }
 
   private function check_if_teacher($courses): bool
   {
@@ -293,7 +359,7 @@ class main implements renderable, templatable
     $isTeacher = false;
 
     foreach ($courses as $course) {
-      $course_context = \context_course::instance($course->id);
+      $course_context = \context_course::instance($course['id']);
       if (has_capability('block/delta_visualizations:viewteacher', $course_context, $USER)) {
         $isTeacher = true;
       }

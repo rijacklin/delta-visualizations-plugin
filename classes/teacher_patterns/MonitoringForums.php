@@ -40,6 +40,16 @@ class MonitoringForums extends TeacherBehaviourPattern
   {
     global $DB, $USER;
 
+    if (empty($params['courseids'])) {
+      return [];
+    }
+
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'courseid'
+    );
+
     $sql = "
       WITH teacher_response AS (
         select
@@ -50,7 +60,7 @@ class MonitoringForums extends TeacherBehaviourPattern
           ON studentpost.discussion = fd.id
         JOIN {forum_posts} reply
           ON reply.parent = studentpost.id
-        WHERE fd.course = :courseid
+        WHERE fd.course $courseidssql
           AND reply.userid = :userid
         ORDER BY fd.id ASC
       )
@@ -67,8 +77,7 @@ class MonitoringForums extends TeacherBehaviourPattern
     $records = $DB->get_records_sql($sql, [
       // TODO: replace with something better than array index
       'userid' => $USER->id,
-      'courseid' => $params['courseid']
-    ]);
+    ] + $courseidsparams);
 
     $data = new stdClass();
 
@@ -143,6 +152,18 @@ class MonitoringForums extends TeacherBehaviourPattern
     ]);
 
     $chart->add_series($series_behaviour);
+
+    return $chart;
+  }
+
+  public function generate_behaviour_pie_chart(array $params)
+  {
+    $chart = "";
+
+    if (!empty($params['courseids'])) {
+      $behaviour_data = $this->query_behaviour_data($params);
+      $chart = $this->create_pie_chart($behaviour_data);
+    }
 
     return $chart;
   }

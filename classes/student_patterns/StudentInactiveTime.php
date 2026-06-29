@@ -33,8 +33,9 @@ defined('MOODLE_INTERNAL') || die();
 class StudentInactiveTime extends StudentBehaviourPattern
 {
   use BarChart;
+  use NotRelatedToCourse;
 
-  public function query_behaviour_data()
+  public function query_behaviour_data(array $params)
   {
     global $DB;
 

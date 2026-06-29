@@ -40,8 +40,15 @@ class TimeSpentAssignments extends StudentBehaviourPattern
 
     $now = time();
 
-    // TODO: Grab actual courseid from template
-    $courseid = 3;
+    if (empty($params['courseids'])) {
+      return [];
+    }
+
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'courseid'
+    );
 
     switch ($this->time_range) {
       case TimeRange::HOURLY:
@@ -59,7 +66,12 @@ class TimeSpentAssignments extends StudentBehaviourPattern
     }
 
     $sql = "
-      WITH ordered_view_logs AS (
+      WITH student_role as (
+        SELECT m.id as student_role_id
+        FROM m_role m
+        WHERE m.shortname = 'student'
+      ),
+      ordered_view_logs AS (
         SELECT
           log.id,
           log.userid,
@@ -74,7 +86,12 @@ class TimeSpentAssignments extends StudentBehaviourPattern
             ORDER BY log.timecreated, log.id
           ) AS next_event_time
         FROM {logstore_standard_log} log
+        JOIN m_role_assignments mra
+        	ON mra.userid = log.userid
+        JOIN student_role sr
+        	ON mra.roleid = sr.student_role_id
         WHERE log.userid IS NOT NULL
+          AND log.courseid $courseidssql
       ),
       assignment_views AS (
         SELECT
@@ -125,11 +142,8 @@ class TimeSpentAssignments extends StudentBehaviourPattern
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // TODO: Grab actual courseid from template
-      'courseid' => $courseid,
-      // 30 minutes
       'starttime' => $start_time
-    ]);
+    ] + $courseidsparams);
 
     $this->records = $records;
   }

@@ -24,6 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+use block_delta_visualizations\form\CourseSelectForm;
 use block_delta_visualizations\output\main;
 
 class block_delta_visualizations extends block_base
@@ -45,7 +46,7 @@ class block_delta_visualizations extends block_base
    */
   public function get_content()
   {
-    global $COURSE;
+    global $OUTPUT, $PAGE;
 
     if ($this->content !== null) {
       return $this->content;
@@ -53,13 +54,17 @@ class block_delta_visualizations extends block_base
 
     $this->content = new stdClass();
 
-    $context = $this->context;
-    $renderer = $this->page->get_renderer('block_delta_visualizations');
+    $selected_courseids = optional_param_array('courseids', [], PARAM_RAW);
 
-    $page = new main($context, $COURSE);
+    $renderable = new \block_delta_visualizations\output\main(
+      $selected_courseids,
+      $this->context
+    );
 
-    $this->content->text = $renderer->render($page);
-    $this->content->footer = "";
+    $this->content->text = $OUTPUT->render_from_template(
+      'block_delta_visualizations/instructor_dashboard',
+      $renderable->export_for_template($OUTPUT)
+    );
 
     return $this->content;
   }

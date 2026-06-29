@@ -34,14 +34,21 @@ class StudentActiveTime extends StudentBehaviourPattern
 {
   use BarChart;
 
-  public function query_behaviour_data()
+  public function query_behaviour_data(array $params)
   {
     global $DB;
 
     $now = time();
 
-    // TODO: Grab actual courseid from template
-    $courseid = 3;
+    if (empty($params['courseids'])) {
+      return [];
+    }
+
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'courseid'
+    );
 
     switch ($this->time_range) {
       case TimeRange::HOURLY:
@@ -51,7 +58,7 @@ class StudentActiveTime extends StudentBehaviourPattern
         $start_time = $now - DAYSECS;
         break;
       case TimeRange::WEEKLY:
-        $start_time = $now - WEEKSECS;
+        $start_time = $now - (WEEKSECS * 2);
         break;
       default:
         $start_time = 0;
@@ -75,7 +82,7 @@ class StudentActiveTime extends StudentBehaviourPattern
           ) AS next_event_time
         FROM {logstore_standard_log} log
         WHERE log.userid IS NOT null
-          and log.courseid = :courseid
+          and log.courseid $courseidssql
           -- Filter by hourly/daily/weekly
           and log.timecreated >= :starttime
           -- Filter both module-level actions (course modules) and core course view events
@@ -132,13 +139,13 @@ class StudentActiveTime extends StudentBehaviourPattern
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // TODO: Grab actual courseid from template
-      'courseid' => $courseid,
       // 30 minutes
       'threshold1' => 1800,
       'threshold2' => 1800,
+      // TEMP: HARDCODED TO GET RECORDS
+      // 'starttime' => 1781557799,
       'starttime' => $start_time
-    ]);
+    ] + $courseidsparams);
 
     $this->records = $records;
   }
@@ -154,11 +161,6 @@ class StudentActiveTime extends StudentBehaviourPattern
       $students[] =  intval($student_id);
       $active_time[] = (int)ceil($value->active_time_seconds * 0.0002777777777778);
     }
-
-    // TODO: REMOVE LATER; TEMP TO SHOW VALUE CONTRAST ON CHART
-    $students[] = intval(3);
-    $active_time[] = intval(24);
-    // END TODO
 
     $chart = new \core\chart_bar();
 

@@ -34,7 +34,7 @@ class ForumPostingConsistency extends StudentBehaviourPattern
 {
   use BarChart;
 
-  public function query_behaviour_data()
+  public function query_behaviour_data(array $params)
   {
     global $DB;
 
@@ -44,8 +44,15 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     // two-week cutoff (#TODO: pass  user-defined cut-off?)
     $cutoff_date = $course_end_date - (2 * WEEKSECS);
 
-    // TODO: Grab actual courseid from template
-    $courseid = 3;
+    if (empty($params['courseids'])) {
+      return [];
+    }
+
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'courseid'
+    );
 
     $sql = "
       SELECT
@@ -73,7 +80,7 @@ class ForumPostingConsistency extends StudentBehaviourPattern
       JOIN {course} c
         ON c.id = fd.course
       WHERE fp.userid IS NOT NULL
-        AND fd.course = :courseid
+        AND fd.course $courseidssql
         AND fp.created >= c.startdate
         AND fp.created <= :courseenddate2
       GROUP BY fp.userid
@@ -81,14 +88,12 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // TODO: Grab actual courseid from template
-      'courseid' => $courseid,
       // TODO: Modify so that 1 and 2 aren't being used to differentiate repeated variables
       'courseenddate1' => $course_end_date,
       'courseenddate2' => $course_end_date,
       'cutoffdate1' => $cutoff_date,
       'cutoffdate2' => $cutoff_date
-    ]);
+    ] + $courseidsparams);
 
     $this->records = $records;
   }

@@ -34,14 +34,21 @@ class TimeSpentForums extends StudentBehaviourPattern
 {
   use BarChart;
 
-  public function query_behaviour_data()
+  public function query_behaviour_data(array $params)
   {
     global $DB;
 
     $now = time();
 
-    // TODO: Grab actual courseid from template
-    $courseid = 3;
+    if (empty($params['courseids'])) {
+      return [];
+    }
+
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'courseid'
+    );
 
     switch ($this->time_range) {
       case TimeRange::HOURLY:
@@ -75,7 +82,7 @@ class TimeSpentForums extends StudentBehaviourPattern
           ) AS next_event_time
         FROM m_logstore_standard_log log
         WHERE log.userid IS NOT NULL
-          and log.courseid = :courseid
+          and log.courseid $courseidssql
           -- Filter by hourly/daily/weekly
           and log.timecreated >= :starttime
       ),
@@ -102,12 +109,10 @@ class TimeSpentForums extends StudentBehaviourPattern
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // TODO: Grab actual courseid from template
-      'courseid' => $courseid,
       // 30 minutes
       'threshold' => 1800,
       'starttime' => $start_time
-    ]);
+    ] + $courseidsparams);
 
     $this->records = $records;
   }
@@ -123,11 +128,6 @@ class TimeSpentForums extends StudentBehaviourPattern
       $students[] =  intval($student_id);
       $forum_view_time[] = (int)ceil($value->total_seconds_spent * 0.0002777777777778);
     }
-
-    // TODO: REMOVE LATER; TEMP TO SHOW VALUE CONTRAST ON CHART
-    $students[] = intval(3);
-    $forum_view_time[] = intval(12);
-    // END TODO
 
     $chart = new \core\chart_bar();
 

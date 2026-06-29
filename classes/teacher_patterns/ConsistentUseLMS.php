@@ -38,6 +38,7 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
 {
   use PieChart;
 
+  // public function query_behaviour_data(array $params)
   public function query_behaviour_data(array $params)
   {
     global $DB, $USER;
@@ -46,6 +47,18 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
     $course_start = 1778540400;
     $course_end = time();
     $num_weeks = intval(($course_end - $course_start) / WEEKSECS);
+
+    $teacher_id = $USER->id;
+
+    if (empty($params['courseids'])) {
+      return [];
+    }
+
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'courseid'
+    );
 
     $sql = "
       WITH teacher_course_logs AS (
@@ -59,7 +72,7 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
           l.crud,
           l.timecreated
         FROM {logstore_standard_log} l
-        WHERE l.courseid = :courseid
+        WHERE l.courseid $courseidssql
           AND l.userid = :userid
           AND l.timecreated >= :starttime
           AND l.timecreated <= :endtime
@@ -75,12 +88,12 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
 
     $records = $DB->get_records_sql($sql, [
       // TODO: replace with something better than array index
-      'userid' => $USER->id,
-      'courseid' => $params['courseid'],
+      'userid' => $teacher_id,
+      'courseids' => implode(",", $params['courseids']),
       'periodweeks' => $num_weeks,
       'starttime' => $course_start,
       'endtime' => $course_end
-    ]);
+    ] + $courseidsparams);
 
     $data = new stdClass();
 
@@ -136,6 +149,19 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
     ]);
 
     $chart->add_series($series_behaviour);
+
+    return $chart;
+  }
+
+  public function generate_behaviour_pie_chart(array $params)
+  {
+    // $chart = new \core\chart_pie();
+    $chart = "";
+
+    if (!empty($params['courseids'])) {
+      $behaviour_data = $this->query_behaviour_data($params);
+      $chart = $this->create_pie_chart($behaviour_data);
+    }
 
     return $chart;
   }

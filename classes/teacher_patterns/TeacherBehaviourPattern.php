@@ -66,6 +66,8 @@ abstract class TeacherBehaviourPattern
 
   abstract protected function query_behaviour_data(array $params);
 
+  abstract protected function generate_behaviour_pie_chart(array $params);
+
   public function get_records()
   {
     return $this->records;

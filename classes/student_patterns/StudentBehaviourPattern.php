@@ -43,6 +43,15 @@ enum TimeRange: Int
   }
 }
 
+trait NotRelatedToCourse
+{
+  public function generate_chart(array $params)
+  {
+    $behaviour_data = $this->query_behaviour_data($params);
+    return $this->create_bar_chart($behaviour_data);
+  }
+}
+
 trait BarChart
 {
   abstract protected function create_bar_chart();
@@ -65,7 +74,27 @@ abstract class StudentBehaviourPattern
   protected $time_range = TimeRange::WEEKLY;
   protected $records = [];
 
-  abstract protected function query_behaviour_data();
+  abstract protected function query_behaviour_data(array $params);
+
+  public function generate_behaviour_chart(array $params)
+  {
+    $chart = "";
+
+    $behaviour_data = $this->query_behaviour_data($params);
+
+    if (!empty($params['courseids']) && $params['chart_type']) {
+      switch ($params['chart_type']) {
+        case "\core\chart_bar":
+          $chart = $this->create_bar_chart($behaviour_data);
+          break;
+        case "\core\chart_line":
+          $chart = $this->create_line_chart($behaviour_data);
+          break;
+      }
+    }
+
+    return $chart;
+  }
 
   public function get_records()
   {

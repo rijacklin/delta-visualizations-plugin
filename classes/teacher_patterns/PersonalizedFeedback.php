@@ -40,6 +40,16 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
   {
     global $DB, $USER;
 
+    if (empty($params['courseids'])) {
+      return [];
+    }
+
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'courseid'
+    );
+
     $sql = "
       WITH target_students AS (
         select
@@ -52,7 +62,7 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
         JOIN m_assign assign
           ON assign.id = ag.assignment
         WHERE ag.grade < :gradethreshold
-          AND assign.course = :courseid
+          AND assign.course $courseidssql
         ORDER BY ag.userid ASC
       ),
       targeted_feedback AS (
@@ -75,11 +85,8 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // TODO: replace with something better than array index
       'gradethreshold' => $params['gradethreshold'],
-      'teacherid' => $USER->id,
-      'courseid' => $params['courseid']
-    ]);
+    ] + $courseidsparams);
 
     // TODO: replace with something better than array index
     $feedback_goal = $params['feedbackgoal'];
@@ -180,6 +187,18 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
     ]);
 
     $chart->add_series($series_behaviour);
+
+    return $chart;
+  }
+
+  public function generate_behaviour_pie_chart(array $params)
+  {
+    $chart = "";
+
+    if (!empty($params['courseids'])) {
+      $behaviour_data = $this->query_behaviour_data($params);
+      $chart = $this->create_pie_chart($behaviour_data);
+    }
 
     return $chart;
   }

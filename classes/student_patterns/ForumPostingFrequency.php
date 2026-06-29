@@ -34,14 +34,21 @@ class ForumPostingFrequency extends StudentBehaviourPattern
 {
   use BarChart;
 
-  public function query_behaviour_data()
+  public function query_behaviour_data(array $params)
   {
     global $DB;
 
     $now = time();
 
-    // TODO: Grab actual courseid from template
-    $courseid = 3;
+    if (empty($params['courseids'])) {
+      return [];
+    }
+
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'courseid'
+    );
 
     switch ($this->time_range) {
       case TimeRange::HOURLY:
@@ -66,7 +73,7 @@ class ForumPostingFrequency extends StudentBehaviourPattern
       JOIN {forum_discussions} fd
         ON fd.id = fp.discussion
       WHERE fp.userid IS NOT null
-        AND fd.course = :courseid
+        AND fd.course $courseidssql
         -- Filter by hourly/daily/weekly
         AND fp.created >= :starttime
       GROUP BY fp.userid
@@ -74,10 +81,8 @@ class ForumPostingFrequency extends StudentBehaviourPattern
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // TODO: Grab actual courseid from template
-      'courseid' => $courseid,
       'starttime' => $start_time
-    ]);
+    ] + $courseidsparams);
 
     $this->records = $records;
   }

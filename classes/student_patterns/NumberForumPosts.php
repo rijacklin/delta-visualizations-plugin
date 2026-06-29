@@ -34,12 +34,19 @@ class NumberForumPosts extends StudentBehaviourPattern
 {
   use BarChart;
 
-  public function query_behaviour_data()
+  public function query_behaviour_data(array $params)
   {
     global $DB;
 
-    // TODO: Grab actual courseid from template
-    $courseid = 3;
+    if (empty($params['courseids'])) {
+      return [];
+    }
+
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'courseid'
+    );
 
     $sql = "
       SELECT
@@ -49,15 +56,12 @@ class NumberForumPosts extends StudentBehaviourPattern
       JOIN {forum_discussions} fd
         ON fd.id = fp.discussion
       WHERE fp.userid IS NOT null
-        AND fd.course = :courseid
+        AND fd.course $courseidssql
       GROUP BY fp.userid
       ORDER BY fp.userid ASC
     ";
 
-    $records = $DB->get_records_sql($sql, [
-      // TODO: Grab actual courseid from template
-      'courseid' => $courseid,
-    ]);
+    $records = $DB->get_records_sql($sql, $courseidsparams);
 
     $this->records = $records;
   }

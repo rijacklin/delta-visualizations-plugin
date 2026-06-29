@@ -33,19 +33,37 @@ defined('MOODLE_INTERNAL') || die();
 class LoginFrequency extends StudentBehaviourPattern
 {
   use BarChart;
+  use NotRelatedToCourse;
 
   // static values for now
   protected $table = 'logstore_standard_log';
 
-  public function query_behaviour_data()
+  public function query_behaviour_data(array $params)
   {
     global $DB;
 
+    // echo "<pre>";
+    // var_dump([
+    //   'courseidssql' => $courseidssql,
+    //   'courseidsparams' => $courseidsparams,
+    // ]);
+    // echo "</pre>";
+    // die();
+
     $sql = "
+      WITH student_role as (
+        SELECT m.id as student_role_id
+        FROM m_role m
+        WHERE m.shortname = 'student'
+      )
       SELECT
         log.userid,
         COUNT(*) as logincount
-      FROM {logstore_standard_log} log
+      FROM m_logstore_standard_log log
+      JOIN m_role_assignments mra 
+        ON mra.userid = log.userid
+      join student_role sr
+        on mra.roleid = sr.student_role_id  
       WHERE log.eventname LIKE :eventname
       GROUP BY log.userid
       ORDER BY log.userid ASC
