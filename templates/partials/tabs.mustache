@@ -35,31 +35,49 @@
 
 <div id="tabs-{{uniqid}}-tab-container">
     <ul class="nav nav-tabs" role="tablist">
+        {{#selected_courseids}}
         <li class="nav-item" role="presentation">
             <a href="#tabs-{{uniqid}}-tab1" class="nav-link active" role="tab" data-target="tabs-{{uniqid}}-tab1" aria-selected="true">
               {{tabs.0.name}}
             </a>
         </li>
-
         <li class="nav-item" role="presentation">
             <a href="#tabs-{{uniqid}}-tab2" class="nav-link" role="tab" data-target="tabs-{{uniqid}}-tab2" aria-selected="false">
               {{tabs.1.name}}
             </a>
         </li>
+        {{/selected_courseids}}
+
+        {{^selected_courseids}}
+        <li class="nav-item" role="presentation">
+            <a href="#tabs-{{uniqid}}-tab2" class="nav-link active" role="tab" data-target="tabs-{{uniqid}}-tab2" aria-selected="false">
+              {{tabs.1.name}}
+            </a>
+        </li>
+        {{/selected_courseids}}
     </ul>
 
     <div class="tab-content border border-top-0 p-3">
+        {{#selected_courseids}}
         <div role="tabpanel" class="tab-pane active show" id="tabs-{{uniqid}}-tab1">
           {{#teacher_behaviours}}
             {{> block_delta_visualizations/partials/behaviour_block }}
           {{/teacher_behaviours}}
         </div>
-
         <div role="tabpanel" class="tab-pane" id="tabs-{{uniqid}}-tab2">
           {{#student_behaviours}}
             {{> block_delta_visualizations/partials/behaviour_block }}
           {{/student_behaviours}}
         </div>
+        {{/selected_courseids}}
+
+        {{^selected_courseids}}
+        <div role="tabpanel" class="tab-pane active show" id="tabs-{{uniqid}}-tab2">
+          {{#student_behaviours}}
+            {{> block_delta_visualizations/partials/behaviour_block }}
+          {{/student_behaviours}}
+        </div>
+        {{/selected_courseids}}
     </div>
 </div>
 
