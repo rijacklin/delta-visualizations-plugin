@@ -79,6 +79,9 @@ class MonitoringForums extends TeacherBehaviourPattern
       'userid' => $USER->id,
     ] + $courseidsparams);
 
+    // store records
+    $this->records = $records;
+
     $data = new stdClass();
 
     $improvement_keywords = ['thanks', 'thank you', 'appreciate', 'that worked'];
@@ -116,7 +119,7 @@ class MonitoringForums extends TeacherBehaviourPattern
     return $data;
   }
 
-  public function create_pie_chart(stdClass $activity_behaviour): \core\chart_pie
+  public function create_pie_chart(stdClass $activity_behaviour): void
   {
     $exhibited = 0;
     $not_exhibited = 0;
@@ -153,18 +156,14 @@ class MonitoringForums extends TeacherBehaviourPattern
 
     $chart->add_series($series_behaviour);
 
-    return $chart;
+    $this->chart = $chart;
   }
 
-  public function generate_behaviour_pie_chart(array $params)
+  public function generate_behaviour_pie_chart(array $params): void
   {
-    $chart = "";
-
     if (!empty($params['courseids'])) {
       $behaviour_data = $this->query_behaviour_data($params);
-      $chart = $this->create_pie_chart($behaviour_data);
+      $this->create_pie_chart($behaviour_data);
     }
-
-    return $chart;
   }
 }

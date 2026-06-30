@@ -95,6 +95,9 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
       'endtime' => $course_end
     ] + $courseidsparams);
 
+    // store records
+    $this->records = $records;
+
     $data = new stdClass();
 
     // iterate over feedback
@@ -113,7 +116,7 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
     return $data;
   }
 
-  public function create_pie_chart(stdClass $activity_behaviour): \core\chart_pie
+  public function create_pie_chart(stdClass $activity_behaviour): void
   {
     $exhibited = 0;
     $not_exhibited = 0;
@@ -150,19 +153,14 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
 
     $chart->add_series($series_behaviour);
 
-    return $chart;
+    $this->chart = $chart;
   }
 
-  public function generate_behaviour_pie_chart(array $params)
+  public function generate_behaviour_pie_chart(array $params): void
   {
-    // $chart = new \core\chart_pie();
-    $chart = "";
-
     if (!empty($params['courseids'])) {
       $behaviour_data = $this->query_behaviour_data($params);
-      $chart = $this->create_pie_chart($behaviour_data);
+      $this->create_pie_chart($behaviour_data);
     }
-
-    return $chart;
   }
 }

@@ -110,68 +110,72 @@ class main implements renderable, templatable
     $data->teacher_behaviours = [];
 
     $behaviour_grades = new CoursePerformanceFeedback();
-    $behaviour_grades_chart = $behaviour_grades->generate_behaviour_pie_chart([
+    $behaviour_grades->generate_behaviour_pie_chart([
       'gradethreshold' => 70,
       'courseids' => $data->selected_courseids
     ]);
+    $behaviour_grades_chart = $behaviour_grades->get_chart();
     if ($behaviour_grades_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Messaging struggling students - low grades",
         'studentsuccess' => true,
-        'chart' => $output->render($behaviour_grades_chart)
+        'chart' => !empty($behaviour_grades->get_records()) ? $output->render($behaviour_grades_chart) : "NO DATA"
       ];
     }
 
     $personalized_feedback = new PersonalizedFeedback();
-    $personalized_feedback_chart = $personalized_feedback->generate_behaviour_pie_chart([
+    $personalized_feedback->generate_behaviour_pie_chart([
       'gradethreshold' => 70,
       'courseids' => $data->selected_courseids,
       'feedbackgoal' => 60
     ]);
+    $personalized_feedback_chart = $personalized_feedback->get_chart();
     if ($personalized_feedback_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Personalized Feedback",
         'studentsuccess' => true,
-        'chart' => $output->render($personalized_feedback_chart)
+        'chart' => !empty($personalized_feedback->get_records()) ? $output->render($personalized_feedback_chart) : "NO DATA"
       ];
     }
 
     $timely_feedback = new TimelyFeedback();
-    $timely_feedback_chart = $timely_feedback->generate_behaviour_pie_chart([
+    $timely_feedback->generate_behaviour_pie_chart([
       'gradethreshold' => 70,
       'days' => 8,
       'courseids' => $data->selected_courseids
     ]);
+    $timely_feedback_chart = $timely_feedback->get_chart();
     if ($timely_feedback_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Timely Feedback",
         'studentsuccess' => false,
-        'chart' => $output->render($timely_feedback_chart)
+        'chart' => !empty($timely_feedback->get_records()) ? $output->render($timely_feedback_chart) : "NO DATA"
       ];
     }
 
     $monitoring_forums = new MonitoringForums();
-    $monitoring_forums_chart = $monitoring_forums->generate_behaviour_pie_chart([
+    $monitoring_forums->generate_behaviour_pie_chart([
       'courseids' => $data->selected_courseids
     ]);
+    $monitoring_forums_chart = $monitoring_forums->get_chart();
     if ($monitoring_forums_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Monitoring Forums",
         'studentsuccess' => false,
-        'chart' => $output->render($monitoring_forums_chart)
+        'chart' => !empty($monitoring_forums->get_records()) ? $output->render($monitoring_forums_chart) : "NO DATA"
       ];
     }
 
     $consistent_use_lms = new ConsistentUseLMS($output);
-    $consistent_use_lms_chart = $consistent_use_lms->generate_behaviour_pie_chart([
+    $consistent_use_lms->generate_behaviour_pie_chart([
       'courseids' => $data->selected_courseids,
       'engagementthreshold' => 5
     ]);
+    $consistent_use_lms_chart = $consistent_use_lms->get_chart();
     if ($consistent_use_lms_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Consistent Use of LMS",
-        'studentsuccess' => false,
-        'chart' => $output->render($consistent_use_lms_chart)
+        'chart' => !empty($consistent_use_lms->get_records()) ? $output->render($consistent_use_lms_chart) : "NO DATA"
       ];
     }
 

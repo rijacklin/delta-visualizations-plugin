@@ -88,6 +88,9 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
       'gradethreshold' => $params['gradethreshold'],
     ] + $courseidsparams);
 
+    // store records
+    $this->records = $records;
+
     // TODO: replace with something better than array index
     $feedback_goal = $params['feedbackgoal'];
 
@@ -151,7 +154,7 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
     return $data;
   }
 
-  public function create_pie_chart(stdClass $activity_behaviour): \core\chart_pie
+  public function create_pie_chart(stdClass $activity_behaviour): void
   {
     $exhibited = 0;
     $not_exhibited = 0;
@@ -188,18 +191,14 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
 
     $chart->add_series($series_behaviour);
 
-    return $chart;
+    $this->chart = $chart;
   }
 
-  public function generate_behaviour_pie_chart(array $params)
+  public function generate_behaviour_pie_chart(array $params): void
   {
-    $chart = "";
-
     if (!empty($params['courseids'])) {
       $behaviour_data = $this->query_behaviour_data($params);
-      $chart = $this->create_pie_chart($behaviour_data);
+      $this->create_pie_chart($behaviour_data);
     }
-
-    return $chart;
   }
 }

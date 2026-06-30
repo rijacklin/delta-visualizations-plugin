@@ -58,6 +58,7 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
             ag.userid AS studentid,
             ag.assignment,
             ag.grade,
+            assign.course as courseid,
             ag.timemodified AS gradeddate
         FROM {assign_grades} ag
         JOIN {assign} assign
@@ -70,7 +71,8 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
         select 
           afcom.id as feedback_id,
           ts.studentid as student_id,
-          afcom.commenttext as feedback_text
+          afcom.commenttext as feedback_text,
+          ts.courseid as courseid
         FROM target_students ts
         join {assignfeedback_comments} afcom
           on afcom.assignment = ts.assignment AND afcom.grade = ts.id
@@ -78,16 +80,21 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
       select
         feedback_id,
         student_id,
+        courseid,
         feedback_text
       FROM targeted_feedback
       ORDER BY
         feedback_id ASC,
-        student_id ASC;
+        student_id ASC,
+        courseid ASC;
     ";
 
     $records = $DB->get_records_sql($sql, [
       'gradethreshold' => $params['gradethreshold'],
     ] + $courseidsparams);
+
+    // store records
+    $this->records = $records;
 
     $improvement_keywords = ['organization', 'textbook', 'materials', 'effort'];
 
@@ -124,7 +131,7 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
     return $data;
   }
 
-  public function create_pie_chart(stdClass $activity_behaviour): \core\chart_pie
+  public function create_pie_chart(stdClass $activity_behaviour): void
   {
     $exhibited = 0;
     $not_exhibited = 0;
@@ -161,18 +168,14 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
 
     $chart->add_series($series_behaviour);
 
-    return $chart;
+    $this->chart = $chart;
   }
 
-  public function generate_behaviour_pie_chart(array $params)
+  public function generate_behaviour_pie_chart(array $params): void
   {
-    $chart = "";
-
     if (!empty($params['courseids'])) {
       $behaviour_data = $this->query_behaviour_data($params);
-      $chart = $this->create_pie_chart($behaviour_data);
+      $this->create_pie_chart($behaviour_data);
     }
-
-    return $chart;
   }
 }
