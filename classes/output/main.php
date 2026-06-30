@@ -90,6 +90,9 @@ class main implements renderable, templatable
     $data->isteacher = $this->check_if_teacher($data->courses);
     $data->selected_courseids = $this->get_selected_courseids($data->courses);
 
+    // pass truthy value to conditionally render if courses selected
+    $data->hasSelectedCourses = !empty($data->selected_courseids) ?? false;
+
     // dates
     $data->startdate = date('Y-m-d');
     $data->enddate = date('Y-m-d');
@@ -114,6 +117,7 @@ class main implements renderable, templatable
     if ($behaviour_grades_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Messaging struggling students - low grades",
+        'studentsuccess' => true,
         'chart' => $output->render($behaviour_grades_chart)
       ];
     }
@@ -127,6 +131,7 @@ class main implements renderable, templatable
     if ($personalized_feedback_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Personalized Feedback",
+        'studentsuccess' => true,
         'chart' => $output->render($personalized_feedback_chart)
       ];
     }
@@ -140,6 +145,7 @@ class main implements renderable, templatable
     if ($timely_feedback_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Timely Feedback",
+        'studentsuccess' => false,
         'chart' => $output->render($timely_feedback_chart)
       ];
     }
@@ -151,6 +157,7 @@ class main implements renderable, templatable
     if ($monitoring_forums_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Monitoring Forums",
+        'studentsuccess' => false,
         'chart' => $output->render($monitoring_forums_chart)
       ];
     }
@@ -163,6 +170,7 @@ class main implements renderable, templatable
     if ($consistent_use_lms_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
         'name' => "Consistent Use of LMS",
+        'studentsuccess' => false,
         'chart' => $output->render($consistent_use_lms_chart)
       ];
     }
@@ -177,12 +185,14 @@ class main implements renderable, templatable
     ]);
     $data->student_behaviours[] = [
       'name' => "Login frequency",
+      'studentsuccess' => false,
       'chart' => !empty($login_frequency->get_records()) ? $output->render($login_frequency_chart) : "NO DATA"
     ];
 
     $student_active_time = new StudentActiveTime();
     $student_active_time_chart = $student_active_time->generate_behaviour_chart([
       'courseids' => $data->selected_courseids,
+      'studentsuccess' => true,
       'chart_type' => '\core\chart_bar'
     ]);
     if ($student_active_time_chart instanceof \core\chart_base) {
@@ -199,6 +209,7 @@ class main implements renderable, templatable
     ]);
     $data->student_behaviours[] = [
       'name' => "Student inactive time",
+      'studentsuccess' => true,
       'chart' => !empty($student_inactive_time->get_records()) ? $output->render($student_inactive_time_chart) : "NO DATA"
     ];
 
@@ -210,11 +221,12 @@ class main implements renderable, templatable
     if ($time_spent_forums_chart instanceof \core\chart_base) {
       $data->student_behaviours[] = [
         'name' => "Time spent viewing forums",
+        'studentsuccess' => true,
         'chart' => !empty($time_spent_forums->get_records()) ? $output->render($time_spent_forums_chart) : "NO DATA"
       ];
     }
 
-    $time_spent_assignments = new TimeSpentForums();
+    $time_spent_assignments = new TimeSpentAssignments();
     $time_spent_assignments_chart = $time_spent_assignments->generate_behaviour_chart([
       'courseids' => $data->selected_courseids,
       "chart_type" => '\core\chart_bar'
@@ -222,6 +234,7 @@ class main implements renderable, templatable
     if ($time_spent_assignments_chart instanceof \core\chart_base) {
       $data->student_behaviours[] = [
         'name' => "Time spent on assignments",
+        'studentsuccess' => false,
         'chart' => !empty($time_spent_assignments->get_records()) ? $output->render($time_spent_assignments_chart) : "NO DATA"
       ];
     }
@@ -234,6 +247,7 @@ class main implements renderable, templatable
     if ($lo_access_frequency_chart instanceof \core\chart_base) {
       $data->student_behaviours[] = [
         'name' => "Learning object access frequency",
+        'studentsuccess' => false,
         'chart' => !empty($lo_access_frequency->get_records()) ? $output->render($lo_access_frequency_chart) : "NO DATA"
       ];
     }
@@ -246,6 +260,7 @@ class main implements renderable, templatable
     if ($forum_posting_frequency_chart instanceof \core\chart_base) {
       $data->student_behaviours[] = [
         'name' => "Forum posting frequency",
+        'studentsuccess' => true,
         'chart' => !empty($forum_posting_frequency->get_records()) ? $output->render($forum_posting_frequency_chart) : "NO DATA"
       ];
     }
@@ -258,6 +273,7 @@ class main implements renderable, templatable
     if ($time_spent_lo_chart instanceof \core\chart_base) {
       $data->student_behaviours[] = [
         'name' => "Time spent accessing learning objects",
+        'studentsuccess' => true,
         'chart' => !empty($time_spent_lo->get_records()) ? $output->render($time_spent_lo_chart) : "NO DATA"
       ];
     }
@@ -270,6 +286,7 @@ class main implements renderable, templatable
     if ($number_forums_viewed_chart instanceof \core\chart_base) {
       $data->student_behaviours[] = [
         'name' => "Number of forums viewed",
+        'studentsuccess' => true,
         'chart' => !empty($number_forums_viewed->get_records()) ? $output->render($number_forums_viewed_chart) : "NO DATA"
       ];
     }
@@ -282,6 +299,7 @@ class main implements renderable, templatable
     if ($number_forum_posts_chart instanceof \core\chart_base) {
       $data->student_behaviours[] = [
         'name' => "Number of forum posts",
+        'studentsuccess' => false,
         'chart' => !empty($number_forum_posts->get_records()) ? $output->render($number_forum_posts_chart) : "NO DATA"
       ];
     }
@@ -294,6 +312,7 @@ class main implements renderable, templatable
     if ($forum_posting_consistency_chart instanceof \core\chart_base) {
       $data->student_behaviours[] = [
         'name' => "Forum posting consistency",
+        'studentsuccess' => true,
         'chart' => !empty($forum_posting_consistency->get_records()) ? $output->render($forum_posting_consistency_chart) : "NO DATA"
       ];
     }
@@ -329,28 +348,6 @@ class main implements renderable, templatable
 
     return $selected_course_ids;
   }
-
-  protected function get_hidden_params(): array
-  {
-    global $PAGE;
-
-    $hiddenparams = [];
-
-    foreach ($PAGE->url->params() as $name => $value) {
-      if ($name === 'courseids' || is_array($value)) continue;
-
-      $hiddenparams[] = [
-        'name' => $name,
-        'value' => $value
-      ];
-    }
-
-    return $hiddenparams;
-  }
-
-  // protected function generate_behaviour_chart() {
-  //
-  // }
 
   private function check_if_teacher($courses): bool
   {

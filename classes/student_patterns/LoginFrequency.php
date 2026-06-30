@@ -42,14 +42,6 @@ class LoginFrequency extends StudentBehaviourPattern
   {
     global $DB;
 
-    // echo "<pre>";
-    // var_dump([
-    //   'courseidssql' => $courseidssql,
-    //   'courseidsparams' => $courseidsparams,
-    // ]);
-    // echo "</pre>";
-    // die();
-
     $sql = "
       WITH student_role as (
         SELECT m.id as student_role_id
