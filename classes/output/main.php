@@ -117,7 +117,7 @@ class main implements renderable, templatable
     $behaviour_grades_chart = $behaviour_grades->get_chart();
     if ($behaviour_grades_chart instanceof \core\chart_base) {
       $data->teacher_behaviours[] = [
-        'name' => "Messaging struggling students - low grades",
+        'name' => "Messaging Struggling Students (Low Grades)",
         'studentsuccess' => true,
         'chart' => !empty($behaviour_grades->get_records()) ? $output->render($behaviour_grades_chart) : "NO DATA"
       ];
