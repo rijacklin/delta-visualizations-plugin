@@ -34,7 +34,6 @@ defined('MOODLE_INTERNAL') || die();
  */
 class CoursePerformanceFeedback extends TeacherBehaviourPattern
 {
-  // use BarChart;
   use PieChart;
 
   public function query_behaviour_data(array $params)

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Core file of block plugin. Handles initializing and rendering the block.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
@@ -23,9 +23,6 @@
  */
 
 defined('MOODLE_INTERNAL') || die();
-
-use block_delta_visualizations\form\CourseSelectForm;
-use block_delta_visualizations\output\main;
 
 class block_delta_visualizations extends block_base
 {
@@ -40,27 +37,32 @@ class block_delta_visualizations extends block_base
   }
 
   /**
-   * Gets the block contents.
+   * Gets the block contents. This consists of the HTML from the mustache template and the dynamic data from the backend (e.g., behaviour data, rendered charts).
    *
-   * @return string The block HTML.
+   * @return string HTML to be rendered for the block
    */
   public function get_content()
   {
-    global $OUTPUT, $PAGE;
+    global $OUTPUT;
 
+    // immediately return rendered content if already exists
     if ($this->content !== null) {
       return $this->content;
     }
 
+    // initialize generic, empty class to store content
     $this->content = new stdClass();
 
+    // grab the selected course ids (multi-select box at top of block)
     $selected_courseids = optional_param_array('courseids', [], PARAM_RAW);
 
+    // create an instance of the renderer for the current context
     $renderable = new \block_delta_visualizations\output\main(
       $selected_courseids,
       $this->context
     );
 
+    // store the html and dynamic data to be rendered for the block
     $this->content->text = $OUTPUT->render_from_template(
       'block_delta_visualizations/instructor_dashboard',
       $renderable->export_for_template($OUTPUT)
@@ -70,9 +72,9 @@ class block_delta_visualizations extends block_base
   }
 
   /**
-   * Defines in which pages this block can be added.
+   * Defines the pages in which this block can and cannot be added.
    *
-   * @return array of the pages where the block can be added.
+   * @return array of page types
    */
   public function applicable_formats()
   {

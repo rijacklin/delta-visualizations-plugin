@@ -38,7 +38,7 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
 
   public function query_behaviour_data(array $params)
   {
-    global $DB, $USER;
+    global $DB;
 
     if (empty($params['courseids'])) {
       return [];
@@ -91,7 +91,6 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
     // store records
     $this->records = $records;
 
-    // TODO: replace with something better than array index
     $feedback_goal = $params['feedbackgoal'];
 
     $data = new stdClass();

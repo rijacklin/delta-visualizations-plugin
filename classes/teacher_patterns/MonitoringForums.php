@@ -75,7 +75,6 @@ class MonitoringForums extends TeacherBehaviourPattern
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // TODO: replace with something better than array index
       'userid' => $USER->id,
     ] + $courseidsparams);
 
