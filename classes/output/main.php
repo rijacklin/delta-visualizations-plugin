@@ -93,6 +93,16 @@ class main implements renderable, templatable
     // pass truthy value to conditionally render if courses selected
     $data->hasSelectedCourses = !empty($data->selected_courseids) ?? false;
 
+    // #TODO: Better place to put this? (for TimelyFeedback teacher behaviour)
+    $data->selectedDays = 8;
+    $data->days = [];
+    for ($i = 0; $i <= 31; $i++) {
+      $data->days[] = [
+        'value' => $i,
+        'selected' => $i === $data->selectedDays
+      ];
+    }
+
     // dates
     $data->startdate = date('Y-m-d');
     $data->enddate = date('Y-m-d');
@@ -149,6 +159,8 @@ class main implements renderable, templatable
       $data->teacher_behaviours[] = [
         'name' => "Timely Feedback",
         'studentsuccess' => false,
+        'showdays' => true,
+        'days' => $data->days,
         'chart' => !empty($timely_feedback->get_records()) ? $output->render($timely_feedback_chart) : "NO DATA"
       ];
     }

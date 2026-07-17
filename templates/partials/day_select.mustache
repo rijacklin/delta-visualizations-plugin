@@ -33,25 +33,20 @@
     }
 }}
 
-<details class="border px-3 py-2 mt-3 mb-3">
-  <summary class="d-flex align-items-center gap-4 text-primary" style="cursor: pointer;">
-    <span class="text-nowrap text-body">{{name}}</span>
+<div class="d-flex align-items-center">
+  <label for="course-select-{{uniqid}}" class="mr-4 text-nowrap mb-1">
+    Number of days:
+  </label>
 
-    <span class="d-flex align-items-center text-nowrap ml-auto">
-      Show
+  <select id="number-days-{{uniqid}}" class="form-control w-auto mr-3" name="numdays">
+    {{#days}}
+      <option value="{{value}}" {{#selected}}selected{{/selected}}>
+        {{value}}
+      </option>
+    {{/days}}
+  </select>
 
-      {{! Down-facing arrow character }}
-      <span class="ml-1" aria-hidden="true">&#x2228;</span>
-    </span>
-  </summary>
-
-  {{! Render number days select if behaviour requires this field }}
-  {{#showdays}}
-    {{> block_delta_visualizations/partials/day_select }}
-  {{/showdays}}
-
-  {{! Make chart scrollable }}
-  <div class="mt-3 mb-3 w-full overflow-x-auto">
-    {{{chart}}}
-  </div>
-</details>
+  <button type="submit" class="btn btn-primary">
+    Apply
+  </button>
+</div>
