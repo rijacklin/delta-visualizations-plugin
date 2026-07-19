@@ -15,62 +15,34 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Models a behaviour pattern
+ * Abstracts behaviour pattern chart behaviour to an Interface
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace block_delta_visualizations;
+namespace block_delta_visualizations\local;
 
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Defines a contract for behaviour pattern subclasses that expose their data records and generate visualization charts.
  */
-class BehaviourPattern
+interface chart_behaviour
 {
-  private $name;
-  private $courseid;
-  private $table;
-  private $params;
-  private $records;
-  private $chart;
+  /**
+   * Generate a chart for a behaviour pattern based on parameters
+   *
+   * @param array $params Query, classification, and chart parameters.
+   * @return \core\chart_base|null The chart (or null if chart cannot be generated).
+   */
+  public function generate_chart(array $params): ?\core\chart_base;
 
-  public function __construct(string $name)
-  {
-    $this->name = $name;
-  }
-
-  public function set_table(string $table)
-  {
-    $this->table = $table;
-  }
-
-  public function add_params(array $params)
-  {
-    $this->params = $params;
-  }
-
-  public function query_grades()
-  {
-    global $DB;
-
-    $records = $DB->get_records_select(
-      'assign_grades',
-      'grade' < ':maxgrade',
-      ['maxgrade' => 70],
-      'userid ASC',
-      'id, userid, grader, timecreated, grade'
-    );
-
-    $this->records = $records;
-  }
-
-  public function get_records()
-  {
-    return $this->records;
-  }
+  /**
+   * Return records used to generate behaviour chart.
+   *
+   * @return array
+   */
+  public function get_records(): array;
 }

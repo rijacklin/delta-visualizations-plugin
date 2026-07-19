@@ -15,21 +15,34 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template block_delta_visualizations/instructor_dashboard
+    @template block_delta_visualizations/partials/course_select
 
-    Template purpose and description.
+    Displays the dashboard course multi-select and enhances it with Moodle's
+    autocomplete interface.
 
     Classes required for JS:
     * none
 
     Data attributes required for JS:
-    * none
+    * data-placeholder - Supplies the autocomplete placeholder text.
 
     Context variables required for this template:
-    * none
+    * courses - Available courses, each containing id, name, and selected.
 
     Example context (json):
     {
+        "courses": [
+            {
+                "id": 2,
+                "name": "Introduction to Moodle",
+                "selected": true
+            },
+            {
+                "id": 5,
+                "name": "Advanced Teaching",
+                "selected": false
+            }
+        ]
     }
 }}
 

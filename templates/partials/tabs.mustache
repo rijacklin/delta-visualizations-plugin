@@ -15,21 +15,56 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template block_delta_visualizations/instructor_dashboard
+    @template block_delta_visualizations/partials/tabs
 
-    Template purpose and description.
+    Displays teacher and student behaviours in two accessible tab panels.
 
     Classes required for JS:
-    * none
+    * active - Marks the selected tab and panel.
+    * show - Makes the selected panel visible.
 
     Data attributes required for JS:
-    * none
+    * data-target - Connects each tab to its panel ID.
 
     Context variables required for this template:
-    * none
+    * tabs - Two tab entries, each containing a name.
+    * teacher_behaviours - Teacher behaviours containing name, studentsuccess, and chart.
+    * student_behaviours - Student behaviours containing name, studentsuccess, and chart.
 
     Example context (json):
     {
+        "tabs": [
+            {
+                "name": "Instructor Behaviour"
+            },
+            {
+                "name": "Instructor View of Student Behaviour"
+            }
+        ],
+        "teacher_behaviours": [
+            {
+                "name": "Timely Feedback",
+                "studentsuccess": true,
+                "chart": "<div class=\"alert alert-info\">Example supporting teacher chart</div>"
+            },
+            {
+                "name": "Monitoring Forums",
+                "studentsuccess": false,
+                "chart": "<div class=\"alert alert-info\">Example non-supporting teacher chart</div>"
+            }
+        ],
+        "student_behaviours": [
+            {
+                "name": "Login Frequency",
+                "studentsuccess": true,
+                "chart": "<div class=\"alert alert-info\">Example supporting student chart</div>"
+            },
+            {
+                "name": "Forum Posting Frequency",
+                "studentsuccess": false,
+                "chart": "<div class=\"alert alert-info\">Example non-supporting student chart</div>"
+            }
+        ]
     }
 }}
 

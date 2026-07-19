@@ -27,13 +27,10 @@ namespace block_delta_visualizations\student_patterns;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the NumberForumPosts student behaviour pattern.
  */
 class NumberForumPosts extends StudentBehaviourPattern
 {
-  use BarChart;
-
   public function query_behaviour_data(array $params)
   {
     global $DB;

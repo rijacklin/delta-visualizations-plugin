@@ -17,6 +17,15 @@
 /**
  * Models teacher behaviour: Timely Feedback
  *
+ * Behaviour Pattern Description: It is important for students to receive
+ * assignment feedback quickly so that they can make any necessary adjustments
+ * to their learning process in a course. Institutions typically codify a set
+ * number of days for teachers to provide feedback on submitted assignments.
+ * This behaviour is exhibited if teachers provide feedback on an assignment
+ * that is within this time frame, calculated as the submission date plus the
+ * number of days in the institution's policy. Teachers who do not provide
+ * feedback within this time frame are failing to exhibit the learning behaviour.
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -29,21 +38,20 @@ use stdClass;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the TimelyFeedback teacher behaviour pattern.
  */
 class TimelyFeedback extends TeacherBehaviourPattern
 {
-  use PieChart;
-
   public function query_behaviour_data(array $params)
   {
-    global $DB, $USER;
+    global $DB;
 
+    // early exit if no selected courses
     if (empty($params['courseids'])) {
       return [];
     }
 
+    // build parameterized SQL IN condition for selected courseids (required for Moodle DML API)
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
       SQL_PARAMS_NAMED,
@@ -58,8 +66,8 @@ class TimelyFeedback extends TeacherBehaviourPattern
             ag.assignment as assignment_id,
             ag.grade,
             ag.timemodified AS graded_date
-        FROM m_assign_grades ag
-        JOIN m_assign assign
+        FROM {assign_grades} ag
+        JOIN {assign} assign
           ON assign.id = ag.assignment
         WHERE ag.grade < :gradethreshold
           AND assign.course $courseidssql
@@ -74,9 +82,9 @@ class TimelyFeedback extends TeacherBehaviourPattern
           graded_date,
           assignment_id
         FROM target_students ts
-        JOIN m_assignfeedback_comments afcom
+        JOIN {assignfeedback_comments} afcom
           ON afcom.assignment = assignment_id AND afcom.grade = ts.id
-        JOIN m_assign_submission asub
+        JOIN {assign_submission} asub
           ON asub.assignment = assignment_id AND asub.userid = student_id
       )
       SELECT
@@ -91,22 +99,20 @@ class TimelyFeedback extends TeacherBehaviourPattern
         student_id ASC;
     ";
 
-    $response_days_in_seconds = (int)$params['days'] * 86400;
+    // convert number of days for response to seconds
+    $response_days_in_seconds = (int)$params['days'] * $DAYSECS;
 
+    // access records from query using moodle DML and store on class instance
     $records = $DB->get_records_sql($sql, [
-      // TODO: replace with something better than array index
       'gradethreshold' => $params['gradethreshold'],
-      'teacherid' => $USER->id,
     ] + $courseidsparams);
-
-    // store records
     $this->records = $records;
 
     $data = new stdClass();
 
     // iterate over feedback
     foreach ($records as $feedback) {
-      // Grab feedback properties
+      // grab feedback properties
       $graded_date = $feedback->graded_date;
       $submission_date = $feedback->submission_date;
       $student_id = $feedback->student_id;
@@ -120,53 +126,5 @@ class TimelyFeedback extends TeacherBehaviourPattern
     }
 
     return $data;
-  }
-
-  public function create_pie_chart(stdClass $activity_behaviour): void
-  {
-    $exhibited = 0;
-    $not_exhibited = 0;
-    $not_required = 0;
-
-    foreach ($activity_behaviour as $state) {
-      switch ($state) {
-        case ActivityBehaviour::Exhibited:
-          $exhibited++;
-          break;
-
-        case ActivityBehaviour::NotExhibited:
-          $not_exhibited++;
-          break;
-
-        case ActivityBehaviour::NotRequired:
-          $not_required++;
-          break;
-      }
-    }
-
-    $chart = new \core\chart_pie();
-    $chart->set_labels([
-      ActivityBehaviour::Exhibited->label(),
-      ActivityBehaviour::NotExhibited->label(),
-      ActivityBehaviour::NotRequired->label(),
-    ]);
-
-    $series_behaviour = new \core\chart_series('Behaviour Exhibited', [
-      $exhibited,
-      $not_exhibited,
-      $not_required,
-    ]);
-
-    $chart->add_series($series_behaviour);
-
-    $this->chart = $chart;
-  }
-
-  public function generate_behaviour_pie_chart(array $params): void
-  {
-    if (!empty($params['courseids'])) {
-      $behaviour_data = $this->query_behaviour_data($params);
-      $this->create_pie_chart($behaviour_data);
-    }
   }
 }

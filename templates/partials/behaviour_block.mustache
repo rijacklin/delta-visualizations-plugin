@@ -15,25 +15,62 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template block_delta_visualizations/instructor_dashboard
+    @template block_delta_visualizations/partials/behaviour_block
 
-    Template purpose and description.
+    Displays an expandable behaviour with optional filter controls and a
+    rendered chart.
 
     Classes required for JS:
     * none
 
     Data attributes required for JS:
-    * none
+    * data-region="behaviour" - Identifies the behaviour containing a submitted filter.
+    * data-behaviour - Supplies the dynamic registry ID when filters are present.
+    * data-region="behaviour-chart" - Identifies the chart replacement target.
 
     Context variables required for this template:
-    * none
+    * name - Human-readable behaviour name.
+    * chart - Pre-rendered chart HTML.
+    * behaviour-id - Optional behaviour registry identifier.
+    * hascontrols - Whether the filter form partial should be rendered.
+    * controls - Filter definitions passed to the filter form partial.
+    * contextid - Moodle context ID passed to the filter form partial.
+    * courseidsjson - JSON-encoded course IDs passed to the filter form partial.
 
     Example context (json):
     {
+        "name": "Timely Feedback",
+        "chart": "<div class=\"alert alert-info\">Example chart</div>",
+        "behaviour-id": "timely_feedback",
+        "hascontrols": true,
+        "contextid": 42,
+        "courseidsjson": "[2,5]",
+        "controls": [
+            {
+                "name": "days",
+                "label": "Response time",
+                "value": 8,
+                "isselect": true,
+                "isdate": false,
+                "isnumber": false,
+                "options": [
+                    {
+                        "value": 8,
+                        "label": "8 days",
+                        "selected": true
+                    },
+                    {
+                        "value": 14,
+                        "label": "14 days",
+                        "selected": false
+                    }
+                ]
+            }
+        ]
     }
 }}
 
-<details class="border px-3 py-2 mt-3 mb-3">
+<details class="border px-3 py-2 mt-3 mb-3" data-region="behaviour" {{#behaviour-id}}data-behaviour="{{behaviour-id}}"{{/behaviour-id}}>
   <summary class="d-flex align-items-center gap-4 text-primary" style="cursor: pointer;">
     <span class="text-nowrap text-body">{{name}}</span>
 
@@ -45,13 +82,13 @@
     </span>
   </summary>
 
-  {{! Render number days select if behaviour requires this field }}
-  {{#showdays}}
-    {{> block_delta_visualizations/partials/day_select }}
-  {{/showdays}}
+  {{! Render filter controls for behaviour patterns that have them }}
+  {{#hascontrols}}
+    {{> block_delta_visualizations/partials/behaviour_filter_form }}
+  {{/hascontrols}}
 
   {{! Make chart scrollable }}
-  <div class="mt-3 mb-3 w-full overflow-x-auto">
+  <div class="mt-3 mb-3 w-full overflow-x-auto" data-region="behaviour-chart">
     {{{chart}}}
   </div>
 </details>

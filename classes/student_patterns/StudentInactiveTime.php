@@ -27,12 +27,10 @@ namespace block_delta_visualizations\student_patterns;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the StudentInactiveTime student behaviour pattern.
  */
 class StudentInactiveTime extends StudentBehaviourPattern
 {
-  use BarChart;
   use NotRelatedToCourse;
 
   public function query_behaviour_data(array $params)
@@ -41,23 +39,7 @@ class StudentInactiveTime extends StudentBehaviourPattern
 
     $end_time = time();
 
-    // TODO: HANDLE THIS PROPERLY FROM TEMPLATE
-    $this->time_range = TimeRange::WEEKLY;
-
-    switch ($this->time_range) {
-      case TimeRange::HOURLY:
-        $start_time = $end_time - HOURSECS;
-        break;
-      case TimeRange::DAILY:
-        $start_time = $end_time - DAYSECS;
-        break;
-      case TimeRange::WEEKLY:
-        $start_time = $end_time - WEEKSECS;
-        break;
-      default:
-        $start_time = 0;
-        break;
-    }
+    $start_time = $this->get_start_time($params, $end_time);
 
     $sql = "
     WITH users_in_scope AS (
@@ -168,7 +150,7 @@ class StudentInactiveTime extends StudentBehaviourPattern
     $records = $DB->get_records_sql($sql, [
       'starttimeclipstart' => $start_time,
       'starttimesessionfilter' => $start_time,
-      'starttimefinal' => $start_time,
+      // 'starttimefinal' => $start_time,
 
       'endtimeusers' => $end_time,
       'endtimelogins' => $end_time,
@@ -180,8 +162,8 @@ class StudentInactiveTime extends StudentBehaviourPattern
       'endtimesessionfilter' => $end_time,
       'rangeseconds' => $range,
 
-      'idlethreshold1' => 1800,
-      'idlethreshold2' => 1800,
+      'idlethreshold1' => $params['sessioncap'],
+      'idlethreshold2' => $params['sessioncap'],
     ]);
 
     $this->records = $records;

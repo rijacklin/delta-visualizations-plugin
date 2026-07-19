@@ -27,13 +27,10 @@ namespace block_delta_visualizations\student_patterns;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the StudentActiveTime student behaviour pattern.
  */
 class StudentActiveTime extends StudentBehaviourPattern
 {
-  use BarChart;
-
   public function query_behaviour_data(array $params)
   {
     global $DB;
@@ -50,20 +47,7 @@ class StudentActiveTime extends StudentBehaviourPattern
       'courseid'
     );
 
-    switch ($this->time_range) {
-      case TimeRange::HOURLY:
-        $start_time = $now - HOURSECS;
-        break;
-      case TimeRange::DAILY:
-        $start_time = $now - DAYSECS;
-        break;
-      case TimeRange::WEEKLY:
-        $start_time = $now - (WEEKSECS * 2);
-        break;
-      default:
-        $start_time = 0;
-        break;
-    }
+    $start_time = $this->get_start_time($params, $now);
 
     $sql = "
       WITH course_events AS (
@@ -140,10 +124,8 @@ class StudentActiveTime extends StudentBehaviourPattern
 
     $records = $DB->get_records_sql($sql, [
       // 30 minutes
-      'threshold1' => 1800,
-      'threshold2' => 1800,
-      // TEMP: HARDCODED TO GET RECORDS
-      // 'starttime' => 1781557799,
+      'threshold1' => $params['sessioncap'],
+      'threshold2' => $params['sessioncap'],
       'starttime' => $start_time
     ] + $courseidsparams);
 

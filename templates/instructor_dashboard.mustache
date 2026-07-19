@@ -17,7 +17,8 @@
 {{!
     @template block_delta_visualizations/instructor_dashboard
 
-    Template purpose and description.
+    Renders the instructor dashboard, including the course selector and
+    behaviour tabs, and initializes asynchronous chart refreshing.
 
     Classes required for JS:
     * none
@@ -26,14 +27,53 @@
     * none
 
     Context variables required for this template:
-    * none
+    * courses - Available courses, each containing id, name, and selected.
+    * hasSelectedCourses - Whether the behaviour tabs should be displayed.
+    * tabs - The two tab labels consumed by the tabs partial.
+    * teacher_behaviours - Teacher behaviour data consumed by the tabs partial.
+    * student_behaviours - Student behaviour data consumed by the tabs partial.
 
     Example context (json):
     {
+        "courses": [
+            {
+                "id": 2,
+                "name": "Introduction to Moodle",
+                "selected": true
+            },
+            {
+                "id": 5,
+                "name": "Advanced Teaching",
+                "selected": false
+            }
+        ],
+        "hasSelectedCourses": true,
+        "tabs": [
+            {
+                "name": "Instructor Behaviour"
+            },
+            {
+                "name": "Instructor View of Student Behaviour"
+            }
+        ],
+        "teacher_behaviours": [
+            {
+                "name": "Timely Feedback",
+                "studentsuccess": true,
+                "chart": "<div class=\"alert alert-info\">Example teacher chart</div>"
+            }
+        ],
+        "student_behaviours": [
+            {
+                "name": "Login Frequency",
+                "studentsuccess": true,
+                "chart": "<div class=\"alert alert-info\">Example student chart</div>"
+            }
+        ]
     }
 }}
 
-<section>
+<section id="delta-visualizations-{{uniqid}}">
   <div class="border p-3 mt-3 mb-3">
     {{> block_delta_visualizations/partials/course_select }}
   </div>
@@ -41,3 +81,9 @@
   {{> block_delta_visualizations/partials/tabs }}
   {{/hasSelectedCourses}}
 </section>
+
+{{#js}}
+require(['block_delta_visualizations/refresh_chart'], function(refreshChart) {
+    refreshChart.init('#delta-visualizations-{{uniqid}}');
+});
+{{/js}}

@@ -27,7 +27,7 @@ defined('MOODLE_INTERNAL') || die();
 class block_delta_visualizations extends block_base
 {
   /**
-   * Initialises the block.
+   * Initialises the block with the plugin name/title
    *
    * @return void
    */
@@ -37,7 +37,9 @@ class block_delta_visualizations extends block_base
   }
 
   /**
-   * Gets the block contents. This consists of the HTML from the mustache template and the dynamic data from the backend (e.g., behaviour data, rendered charts).
+   * Gets the block contents. This consists of the HTML from the mustache
+   * template and the dynamic data from the backend (e.g., behaviour data,
+   * rendered charts).
    *
    * @return string HTML to be rendered for the block
    */
@@ -85,5 +87,11 @@ class block_delta_visualizations extends block_base
       'mod' => false,
       'my' => true,
     ];
+  }
+
+  // Enables configuration/settings page
+  public function has_config(): bool
+  {
+    return true;
   }
 }

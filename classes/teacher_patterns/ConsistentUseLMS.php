@@ -17,6 +17,9 @@
 /**
  * Models teacher behaviour: Consistent Use of LMS
  *
+ * #TODO: Finish this behaviour pattern description
+ * Behaviour Pattern Description:
+ *
  * This behaviour is exhibited when the teacher interacts with the course a given threshold number of times each week.
  *
  * @package     block_delta_visualizations
@@ -31,29 +34,26 @@ use stdClass;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the ConsistentUseLMS teacher behaviour pattern.
  */
 class ConsistentUseLMS extends TeacherBehaviourPattern
 {
-  use PieChart;
-
-  // public function query_behaviour_data(array $params)
   public function query_behaviour_data(array $params)
   {
     global $DB, $USER;
 
-    // TODO: Replace with dynamic start and end dates
-    $course_start = 1778540400;
-    $course_end = time();
-    $num_weeks = intval(($course_end - $course_start) / WEEKSECS);
+    $course_start = (int)$params['starttime'];
+    $course_end = (int)$params['endtime'];
+    $num_weeks = max(1 / WEEKSECS, ($course_end - $course_start + 1) / WEEKSECS);
 
     $teacher_id = $USER->id;
 
+    // early exit if no selected courses
     if (empty($params['courseids'])) {
       return [];
     }
 
+    // build parameterized SQL IN condition for selected courseids (required for Moodle DML API)
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
       SQL_PARAMS_NAMED,
@@ -79,23 +79,18 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
       )
       SELECT
         l.userid,
-        COUNT(l.id) AS total_teacher_interactions,
-        COUNT(l.id) / :periodweeks AS interactions_per_week
+        COUNT(l.id) AS total_teacher_interactions
       FROM teacher_course_logs l 
       GROUP BY l.userid
       ORDER BY total_teacher_interactions DESC;
     ";
 
+    // access records from query using moodle DML and store on class instance
     $records = $DB->get_records_sql($sql, [
-      // TODO: replace with something better than array index
       'userid' => $teacher_id,
-      'courseids' => implode(",", $params['courseids']),
-      'periodweeks' => $num_weeks,
       'starttime' => $course_start,
       'endtime' => $course_end
     ] + $courseidsparams);
-
-    // store records
     $this->records = $records;
 
     $data = new stdClass();
@@ -103,7 +98,7 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
     // iterate over feedback
     foreach ($records as $interactions) {
       // Grab feedback properties
-      $interactions_per_unit = $interactions->interactions_per_week;
+      $interactions_per_unit = $interactions->total_teacher_interactions / $num_weeks;
 
       // check to see if feedback sufficiently personalized/unique
       if ($interactions_per_unit > $params['engagementthreshold']) {
@@ -114,53 +109,5 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
     }
 
     return $data;
-  }
-
-  public function create_pie_chart(stdClass $activity_behaviour): void
-  {
-    $exhibited = 0;
-    $not_exhibited = 0;
-    $not_required = 0;
-
-    foreach ($activity_behaviour as $state) {
-      switch ($state) {
-        case ActivityBehaviour::Exhibited:
-          $exhibited++;
-          break;
-
-        case ActivityBehaviour::NotExhibited:
-          $not_exhibited++;
-          break;
-
-        case ActivityBehaviour::NotRequired:
-          $not_required++;
-          break;
-      }
-    }
-
-    $chart = new \core\chart_pie();
-    $chart->set_labels([
-      ActivityBehaviour::Exhibited->label(),
-      ActivityBehaviour::NotExhibited->label(),
-      ActivityBehaviour::NotRequired->label(),
-    ]);
-
-    $series_behaviour = new \core\chart_series('Behaviour Exhibited', [
-      $exhibited,
-      $not_exhibited,
-      $not_required,
-    ]);
-
-    $chart->add_series($series_behaviour);
-
-    $this->chart = $chart;
-  }
-
-  public function generate_behaviour_pie_chart(array $params): void
-  {
-    if (!empty($params['courseids'])) {
-      $behaviour_data = $this->query_behaviour_data($params);
-      $this->create_pie_chart($behaviour_data);
-    }
   }
 }

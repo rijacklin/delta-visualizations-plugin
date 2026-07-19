@@ -27,13 +27,10 @@ namespace block_delta_visualizations\student_patterns;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the TimeSpentAssignments student behaviour pattern.
  */
 class TimeSpentAssignments extends StudentBehaviourPattern
 {
-  use BarChart;
-
   public function query_behaviour_data(array $params)
   {
     global $DB;
@@ -50,34 +47,22 @@ class TimeSpentAssignments extends StudentBehaviourPattern
       'courseid'
     );
 
-    switch ($this->time_range) {
-      case TimeRange::HOURLY:
-        $start_time = $now - HOURSECS;
-        break;
-      case TimeRange::DAILY:
-        $start_time = $now - DAYSECS;
-        break;
-      case TimeRange::WEEKLY:
-        $start_time = $now - WEEKSECS;
-        break;
-      default:
-        $start_time = 0;
-        break;
+    $start_time = $this->get_start_time($params, $now);
+    $sessioncap = $params['sessioncap'] ?? get_config(
+      'block_delta_visualizations',
+      'sessioncap'
+    );
+    if (!is_numeric($sessioncap)) {
+      $sessioncap = 30 * MINSECS;
     }
+    $sessioncap = max(MINSECS, min(DAYSECS, (int)$sessioncap));
 
     $sql = "
-      WITH student_role as (
-        SELECT m.id as student_role_id
-        FROM m_role m
-        WHERE m.shortname = 'student'
-      ),
-      ordered_view_logs AS (
+      WITH ordered_course_logs AS (
         SELECT
           log.id,
           log.userid,
           log.courseid,
-          log.contextinstanceid,
-          log.eventname,
           log.component,
           log.action,
           log.timecreated,
@@ -86,63 +71,45 @@ class TimeSpentAssignments extends StudentBehaviourPattern
             ORDER BY log.timecreated, log.id
           ) AS next_event_time
         FROM {logstore_standard_log} log
-        JOIN m_role_assignments mra
-        	ON mra.userid = log.userid
-        JOIN student_role sr
-        	ON mra.roleid = sr.student_role_id
+        JOIN {role_assignments} ra
+          ON ra.userid = log.userid
+        JOIN {role} r
+          ON r.id = ra.roleid
+          AND r.shortname = 'student'
+        JOIN {context} ctx
+          ON ctx.id = ra.contextid
+          AND ctx.contextlevel = :coursecontext
+          AND ctx.instanceid = log.courseid
         WHERE log.userid IS NOT NULL
           AND log.courseid $courseidssql
+          AND log.timecreated >= :starttime
       ),
-      assignment_views AS (
+      assignment_view_durations AS (
         SELECT
-          ovl.userid,
-          ovl.courseid,
-          ovl.contextinstanceid AS coursemoduleid,
-          cm.instance AS assignmentid,
-          ovl.timecreated AS view_time
-        FROM ordered_view_logs ovl
-        JOIN {course_modules} cm
-          ON cm.id = ovl.contextinstanceid
-        JOIN {modules} m
-          ON m.id = cm.module
-        AND m.name = 'assign'
-        WHERE ovl.component = 'mod_assign'
-          AND ovl.action = 'viewed'
-      ),
-      first_assignment_view AS (
-        SELECT
-          userid,
-          courseid,
-          coursemoduleid,
-          assignmentid,
-          MIN(view_time) AS first_view_time
-        FROM assignment_views
-        GROUP BY userid, courseid, coursemoduleid, assignmentid
-      ),
-      duration_per_assignment AS (
-        SELECT
-          fav.userid as studentid,
-          fav.assignmentid as assignmentid,
-          fav.coursemoduleid as moduleid,
-          MIN(sub.timemodified) - fav.first_view_time AS time_spent_on_assignment
-        FROM first_assignment_view fav
-        JOIN {assign_submission} sub
-          ON sub.userid = fav.userid
-          AND sub.assignment = fav.assignmentid
-          AND sub.timemodified >= fav.first_view_time
-        WHERE sub.latest = 1
-        GROUP BY fav.userid, fav.assignmentid, fav.coursemoduleid, fav.first_view_time
+          userid AS studentid,
+          CASE
+            WHEN next_event_time IS NULL THEN 0
+            WHEN next_event_time <= timecreated THEN 0
+            WHEN next_event_time - timecreated > :sessioncaplimit THEN :sessioncapvalue
+            ELSE next_event_time - timecreated
+          END AS time_spent_on_assignment
+        FROM ordered_course_logs
+        WHERE component = 'mod_assign'
+          AND action = 'viewed'
       )
       SELECT
         studentid,
-        SUM(time_spent_on_assignment) as total_time_spent
-      FROM duration_per_assignment
+        SUM(time_spent_on_assignment) AS total_time_spent
+      FROM assignment_view_durations
       GROUP BY studentid
       ORDER BY studentid ASC
     ";
 
     $records = $DB->get_records_sql($sql, [
-      'starttime' => $start_time
+      'coursecontext' => CONTEXT_COURSE,
+      'sessioncaplimit' => $sessioncap,
+      'sessioncapvalue' => $sessioncap,
+      'starttime' => $start_time,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -157,13 +124,8 @@ class TimeSpentAssignments extends StudentBehaviourPattern
 
     foreach ($data as $student_id => $value) {
       $students[] =  intval($student_id);
-      $assign_view_time[] = (int)ceil($value->total_time_spent * 0.0002777777777778);
+      $assign_view_time[] = (int)ceil($value->total_time_spent / HOURSECS);
     }
-
-    // TODO: REMOVE LATER; TEMP TO SHOW VALUE CONTRAST ON CHART
-    $students[] = intval(3);
-    $assign_view_time[] = intval(12);
-    // END TODO
 
     $chart = new \core\chart_bar();
 

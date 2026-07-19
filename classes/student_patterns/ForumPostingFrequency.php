@@ -27,13 +27,10 @@ namespace block_delta_visualizations\student_patterns;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the ForumPostingFrequency student behaviour pattern.
  */
 class ForumPostingFrequency extends StudentBehaviourPattern
 {
-  use BarChart;
-
   public function query_behaviour_data(array $params)
   {
     global $DB;
@@ -50,20 +47,7 @@ class ForumPostingFrequency extends StudentBehaviourPattern
       'courseid'
     );
 
-    switch ($this->time_range) {
-      case TimeRange::HOURLY:
-        $start_time = $now - HOURSECS;
-        break;
-      case TimeRange::DAILY:
-        $start_time = $now - DAYSECS;
-        break;
-      case TimeRange::WEEKLY:
-        $start_time = $now - WEEKSECS;
-        break;
-      default:
-        $start_time = 0;
-        break;
-    }
+    $start_time = $this->get_start_time($params, $now);
 
     $sql = "
       SELECT

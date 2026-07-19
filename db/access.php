@@ -23,6 +23,7 @@
  */
 
 $capabilities = [
+  // allows block plugin to be added to dashboard
   'block/delta_visualizations:myaddinstance' => [
     'captype' => 'read',
     'contextlevel' => CONTEXT_SYSTEM,
@@ -32,6 +33,7 @@ $capabilities = [
     'clonepermissionsfrom' => 'moodle/my:manageblocks'
   ],
 
+  // defines roles with permission to view behaviours (charts and data)
   'block/delta_visualizations:viewteacher' => [
     'captype' => 'read',
     'contextlevel' => CONTEXT_BLOCK,

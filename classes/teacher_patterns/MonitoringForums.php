@@ -17,6 +17,15 @@
 /**
  * Models teacher behaviour: Monitoring Forums
  *
+ * Behaviour Pattern Description: Students often first look to the course
+ * discussion forums when they need further guidance in the course. Teachers can
+ * help clear confusion and avoid repeated messages by ensuring that issues
+ * posted to the discussion forums have been resolved. This behaviour is being
+ * exhibited if teachers are responding to such questions posted by students and
+ * the students are following up with language that shows their issue has been
+ * resolved. Teachers who fail to respond to such discussions, or fail to
+ * sufficiently resolve a student's issue, are not exhibiting the behaviour.
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -29,21 +38,20 @@ use stdClass;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the MonitoringForums teacher behaviour pattern.
  */
 class MonitoringForums extends TeacherBehaviourPattern
 {
-  use PieChart;
-
   public function query_behaviour_data(array $params)
   {
     global $DB, $USER;
 
+    // early exit if no selected courses
     if (empty($params['courseids'])) {
       return [];
     }
 
+    // build parameterized SQL IN condition for selected courseids (required for Moodle DML API)
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
       SQL_PARAMS_NAMED,
@@ -74,11 +82,10 @@ class MonitoringForums extends TeacherBehaviourPattern
       ORDER BY post_id ASC
     ";
 
+    // access records from query using moodle DML and store on class instance
     $records = $DB->get_records_sql($sql, [
       'userid' => $USER->id,
     ] + $courseidsparams);
-
-    // store records
     $this->records = $records;
 
     $data = new stdClass();
@@ -89,6 +96,7 @@ class MonitoringForums extends TeacherBehaviourPattern
 
     $data = new stdClass();
 
+    // iterate over forum posts
     foreach ($posts as $post) {
       // message properties
       $post_from = "";
@@ -100,7 +108,7 @@ class MonitoringForums extends TeacherBehaviourPattern
         continue;
       }
 
-      // default
+      // default behaviour state
       $behaviour = ActivityBehaviour::NotExhibited;
 
       // check for time_commitment_keywords in message
@@ -116,53 +124,5 @@ class MonitoringForums extends TeacherBehaviourPattern
     }
 
     return $data;
-  }
-
-  public function create_pie_chart(stdClass $activity_behaviour): void
-  {
-    $exhibited = 0;
-    $not_exhibited = 0;
-    $not_required = 0;
-
-    foreach ($activity_behaviour as $state) {
-      switch ($state) {
-        case ActivityBehaviour::Exhibited:
-          $exhibited++;
-          break;
-
-        case ActivityBehaviour::NotExhibited:
-          $not_exhibited++;
-          break;
-
-        case ActivityBehaviour::NotRequired:
-          $not_required++;
-          break;
-      }
-    }
-
-    $chart = new \core\chart_pie();
-    $chart->set_labels([
-      ActivityBehaviour::Exhibited->label(),
-      ActivityBehaviour::NotExhibited->label(),
-      ActivityBehaviour::NotRequired->label(),
-    ]);
-
-    $series_behaviour = new \core\chart_series('Behaviour Exhibited', [
-      $exhibited,
-      $not_exhibited,
-      $not_required,
-    ]);
-
-    $chart->add_series($series_behaviour);
-
-    $this->chart = $chart;
-  }
-
-  public function generate_behaviour_pie_chart(array $params): void
-  {
-    if (!empty($params['courseids'])) {
-      $behaviour_data = $this->query_behaviour_data($params);
-      $this->create_pie_chart($behaviour_data);
-    }
   }
 }

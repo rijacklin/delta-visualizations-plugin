@@ -24,17 +24,19 @@
 
 namespace block_delta_visualizations\teacher_patterns;
 
+use block_delta_visualizations\local\chart_behaviour;
 use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
 
 // represents teacher activity behaviour state
-enum ActivityBehaviour: Int
+enum ActivityBehaviour
 {
-  case NotExhibited = 0;
-  case Exhibited = 1;
-  case NotRequired = 2;
+  case NotExhibited;
+  case Exhibited;
+  case NotRequired;
 
+  // converts labels to their string representations
   public function label(): string
   {
     return match ($this) {
@@ -45,37 +47,93 @@ enum ActivityBehaviour: Int
   }
 }
 
-trait BarChart
-{
-  abstract protected function create_bar_chart(stdClass $activity_behaviour);
-}
-
-trait PieChart
-{
-  abstract protected function create_pie_chart(stdClass $activity_behaviour);
-}
-
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Base class for all teacher behaviour patterns, which implement the
+ * chart_behaviour interface.
  */
-abstract class TeacherBehaviourPattern
+abstract class TeacherBehaviourPattern implements chart_behaviour
 {
-  protected $table;
   protected $records = [];
   protected $chart;
 
+  // behaviour that teacher behaviour subclasses must define
   abstract protected function query_behaviour_data(array $params);
 
-  abstract public function generate_behaviour_pie_chart(array $params): void;
-
-  public function get_records()
+  /**
+   * Creates a pie chart visualization for a teacher behaviour pattern.
+   *
+   * @param stdClass $activity_behaviour Mapping of records to activity
+   * behaviour states
+   * @return void
+   */
+  protected function create_pie_chart(stdClass $activity_behaviour): void
   {
-    return $this->records;
+    // initialize behaviour states
+    $exhibited = 0;
+    $not_exhibited = 0;
+    $not_required = 0;
+
+    // iterate over behaviour states and count number of each based on data records
+    foreach ($activity_behaviour as $state) {
+      switch ($state) {
+        case ActivityBehaviour::Exhibited:
+          $exhibited++;
+          break;
+        case ActivityBehaviour::NotExhibited:
+          $not_exhibited++;
+          break;
+        case ActivityBehaviour::NotRequired:
+          $not_required++;
+          break;
+      }
+    }
+
+    // create an instane of a pie chart using Moodle chart API
+    $chart = new \core\chart_pie();
+
+    // set the chart labels
+    $chart->set_labels([
+      ActivityBehaviour::Exhibited->label(),
+      ActivityBehaviour::NotExhibited->label(),
+      ActivityBehaviour::NotRequired->label(),
+    ]);
+
+    // create a chart series object and append it to the chart
+    $series_behaviour = new \core\chart_series('Behaviour Exhibited', [
+      $exhibited,
+      $not_exhibited,
+      $not_required,
+    ]);
+    $chart->add_series($series_behaviour);
+
+    // store the chart on the behaviour pattern instance
+    $this->chart = $chart;
   }
 
-  public function get_chart()
+  /**
+   * Generates a behaviour pattern chart based on the provided parameters.
+   *
+   * @param array $params Params defining behaviour pattern chart
+   * @return \core\chart_base Optionally returns a chart or null
+   */
+  public function generate_chart(array $params): ?\core\chart_base
   {
-    return $this->chart;
+    $this->records = [];
+    $this->chart = null;
+
+    $behaviour_data = $this->query_behaviour_data($params);
+    $this->create_pie_chart($behaviour_data);
+
+    return $this->chart instanceof \core\chart_base ? $this->chart : null;
+  }
+
+  /**
+   * Provides public class access to behaviour pattern's records
+   *
+   * @return array Database records associated with behaviour pattern instance
+   */
+  public function get_records(): array
+  {
+    return $this->records;
   }
 }

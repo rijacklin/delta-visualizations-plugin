@@ -17,6 +17,14 @@
 /**
  * Models teacher behaviour: Course Performance Feedback
  *
+ * Behaviour Pattern Description: Students who are not achieving sufficient
+ * assignment grades should receive feedback from their teachers to encourage
+ * and guide them to higher grades. This behaviour is exhibited by teachers who
+ * identify students who are performing below grade expectations and writing
+ * feedback that identifies where and how the student can improve. Teachers who
+ * do not provide feedback containing such language fail to exhibit this
+ * behaviour.
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -29,21 +37,20 @@ use stdClass;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the CoursePerformanceFeedback teacher behaviour pattern.
  */
 class CoursePerformanceFeedback extends TeacherBehaviourPattern
 {
-  use PieChart;
-
   public function query_behaviour_data(array $params)
   {
-    global $DB, $USER;
+    global $DB;
 
+    // early exit if no selected courses
     if (empty($params['courseids'])) {
       return [];
     }
 
+    // build parameterized SQL IN condition for selected courseids (required for Moodle DML API)
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
       SQL_PARAMS_NAMED,
@@ -88,11 +95,10 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
         courseid ASC;
     ";
 
+    // access records from query using moodle DML and store on class instance
     $records = $DB->get_records_sql($sql, [
       'gradethreshold' => $params['gradethreshold'],
     ] + $courseidsparams);
-
-    // store records
     $this->records = $records;
 
     $improvement_keywords = ['organization', 'textbook', 'materials', 'effort'];
@@ -101,6 +107,7 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
 
     $data = new stdClass();
 
+    // iterate over feedback messages
     foreach ($messages as $message) {
       // message properties
       $message_to = $message->student_id;
@@ -112,7 +119,7 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
         continue;
       }
 
-      // default
+      // default behaviour state
       $behaviour = ActivityBehaviour::NotExhibited;
 
       // check for time_commitment_keywords in message
@@ -128,53 +135,5 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
     }
 
     return $data;
-  }
-
-  public function create_pie_chart(stdClass $activity_behaviour): void
-  {
-    $exhibited = 0;
-    $not_exhibited = 0;
-    $not_required = 0;
-
-    foreach ($activity_behaviour as $state) {
-      switch ($state) {
-        case ActivityBehaviour::Exhibited:
-          $exhibited++;
-          break;
-
-        case ActivityBehaviour::NotExhibited:
-          $not_exhibited++;
-          break;
-
-        case ActivityBehaviour::NotRequired:
-          $not_required++;
-          break;
-      }
-    }
-
-    $chart = new \core\chart_pie();
-    $chart->set_labels([
-      ActivityBehaviour::Exhibited->label(),
-      ActivityBehaviour::NotExhibited->label(),
-      ActivityBehaviour::NotRequired->label(),
-    ]);
-
-    $series_behaviour = new \core\chart_series('Behaviour Exhibited', [
-      $exhibited,
-      $not_exhibited,
-      $not_required,
-    ]);
-
-    $chart->add_series($series_behaviour);
-
-    $this->chart = $chart;
-  }
-
-  public function generate_behaviour_pie_chart(array $params): void
-  {
-    if (!empty($params['courseids'])) {
-      $behaviour_data = $this->query_behaviour_data($params);
-      $this->create_pie_chart($behaviour_data);
-    }
   }
 }

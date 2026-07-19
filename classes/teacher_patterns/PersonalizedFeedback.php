@@ -17,6 +17,11 @@
 /**
  * Models teacher behaviour: Personalized Feedback
  *
+ * Behaviour Pattern Description: All students should receive assignment feedback
+ * that is personalized. This behaviour compares all assignment feedback from a
+ * teacher and calculates a uniqueness score. This behaviour is exhibited if the
+ * teacher feedback contains language that is sufficiently unique.
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -29,21 +34,20 @@ use stdClass;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the PersonalizedFeedback teacher behaviour pattern.
  */
 class PersonalizedFeedback extends TeacherBehaviourPattern
 {
-  use PieChart;
-
   public function query_behaviour_data(array $params)
   {
     global $DB;
 
+    // early exit if no selected courses
     if (empty($params['courseids'])) {
       return [];
     }
 
+    // build parameterized SQL IN condition for selected courseids (required for Moodle DML API)
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
       SQL_PARAMS_NAMED,
@@ -58,8 +62,8 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
             ag.assignment,
             ag.grade,
             ag.timemodified AS gradeddate
-        FROM m_assign_grades ag
-        JOIN m_assign assign
+        FROM {assign_grades} ag
+        JOIN {assign} assign
           ON assign.id = ag.assignment
         WHERE ag.grade < :gradethreshold
           AND assign.course $courseidssql
@@ -71,7 +75,7 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
           ts.studentid as student_id,
           afcom.commenttext as feedback_text
         FROM target_students ts
-        join m_assignfeedback_comments afcom
+        join {assignfeedback_comments} afcom
           on afcom.assignment = ts.assignment AND afcom.grade = ts.id
       )
       select
@@ -84,13 +88,13 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
         student_id ASC;
     ";
 
+    // access records from query using moodle DML and store on clas instance
     $records = $DB->get_records_sql($sql, [
       'gradethreshold' => $params['gradethreshold'],
     ] + $courseidsparams);
-
-    // store records
     $this->records = $records;
 
+    // store the configured feedback goal
     $feedback_goal = $params['feedbackgoal'];
 
     $data = new stdClass();
@@ -116,9 +120,6 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
       // store text as array of words to iterate over
       $feedback_to_score_text = explode(' ', $feedback_to_score->feedback_text);
 
-      // default
-      $behaviour = ActivityBehaviour::NotExhibited;
-
       // calculate how unique feedback is to student
       foreach ($feedback_to_score_text as $word_to_score) {
         foreach ($feedback_to_compare_text as $word_to_compare) {
@@ -143,7 +144,7 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
       $feedback_percent = $max_similar_count / $feedback_length;
 
       // check to see if feedback sufficiently personalized/unique
-      if ($feedback_percent >= $feedback_goal) {
+      if ($feedback_percent >= ($feedback_goal / 100)) {
         $data->{$feedback_to} = ActivityBehaviour::NotExhibited;
       } else {
         $data->{$feedback_to} = ActivityBehaviour::Exhibited;
@@ -151,53 +152,5 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
     }
 
     return $data;
-  }
-
-  public function create_pie_chart(stdClass $activity_behaviour): void
-  {
-    $exhibited = 0;
-    $not_exhibited = 0;
-    $not_required = 0;
-
-    foreach ($activity_behaviour as $state) {
-      switch ($state) {
-        case ActivityBehaviour::Exhibited:
-          $exhibited++;
-          break;
-
-        case ActivityBehaviour::NotExhibited:
-          $not_exhibited++;
-          break;
-
-        case ActivityBehaviour::NotRequired:
-          $not_required++;
-          break;
-      }
-    }
-
-    $chart = new \core\chart_pie();
-    $chart->set_labels([
-      ActivityBehaviour::Exhibited->label(),
-      ActivityBehaviour::NotExhibited->label(),
-      ActivityBehaviour::NotRequired->label(),
-    ]);
-
-    $series_behaviour = new \core\chart_series('Behaviour Exhibited', [
-      $exhibited,
-      $not_exhibited,
-      $not_required,
-    ]);
-
-    $chart->add_series($series_behaviour);
-
-    $this->chart = $chart;
-  }
-
-  public function generate_behaviour_pie_chart(array $params): void
-  {
-    if (!empty($params['courseids'])) {
-      $behaviour_data = $this->query_behaviour_data($params);
-      $this->create_pie_chart($behaviour_data);
-    }
   }
 }

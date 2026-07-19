@@ -27,26 +27,20 @@ namespace block_delta_visualizations\student_patterns;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the ForumPostingConsistency student behaviour pattern.
  */
 class ForumPostingConsistency extends StudentBehaviourPattern
 {
-  use BarChart;
-
   public function query_behaviour_data(array $params)
   {
     global $DB;
 
-    // get course end date for student (#TODO: how to do this dynamically?)
-    $course_end_date = 1782144060;  // Monday June 22, 12:01 AM
-
-    // two-week cutoff (#TODO: pass  user-defined cut-off?)
-    $cutoff_date = $course_end_date - (2 * WEEKSECS);
-
     if (empty($params['courseids'])) {
       return [];
     }
+
+    // #TODO: rename?
+    $window_seconds = (int)$params['final_window_weeks'] * WEEKSECS;
 
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
@@ -55,20 +49,28 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     );
 
     $sql = "
+      WITH course_windows AS (
+        SELECT
+          c.id,
+          c.startdate,
+          c.enddate,
+          c.enddate - :windowseconds AS cutoffdate
+        FROM {course} c
+        WHERE c.id $courseidssql
+          AND c.enddate > c.startdate
+      )
       SELECT
         fp.userid,
         SUM(
           CASE
-            WHEN fp.created >= c.startdate
-              AND fp.created < :cutoffdate1
+            WHEN fp.created < cw.cutoffdate
             THEN 1
             ELSE 0
           END
         ) AS posts_before,
         SUM(
           CASE
-            WHEN fp.created >= :cutoffdate2
-              AND fp.created <= :courseenddate1
+            WHEN fp.created >= cw.cutoffdate
             THEN 1
             ELSE 0
           END
@@ -77,22 +79,17 @@ class ForumPostingConsistency extends StudentBehaviourPattern
       FROM {forum_posts} fp
       JOIN {forum_discussions} fd
         ON fd.id = fp.discussion
-      JOIN {course} c
-        ON c.id = fd.course
+      JOIN course_windows cw
+        ON cw.id = fd.course
       WHERE fp.userid IS NOT NULL
-        AND fd.course $courseidssql
-        AND fp.created >= c.startdate
-        AND fp.created <= :courseenddate2
+        AND fp.created >= cw.startdate
+        AND fp.created <= cw.enddate
       GROUP BY fp.userid
       ORDER BY fp.userid ASC
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // TODO: Modify so that 1 and 2 aren't being used to differentiate repeated variables
-      'courseenddate1' => $course_end_date,
-      'courseenddate2' => $course_end_date,
-      'cutoffdate1' => $cutoff_date,
-      'cutoffdate2' => $cutoff_date
+      'windowseconds' => $window_seconds
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -118,17 +115,17 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     $chart->set_labels($students);
 
     // y-axis
-    $before_series = new \core\chart_series('Posts Before Cutoff', $posts_before);
+    $before_series = new \core\chart_series('Posts Before Final Window', $posts_before);
     $chart->add_series($before_series);
 
-    $after_series = new \core\chart_series('Posts After Cutoff', $posts_after);
+    $after_series = new \core\chart_series('Posts During Final Window', $posts_after);
     $chart->add_series($after_series);
 
     $xaxis = $chart->get_xaxis(0, true);
     $xaxis->set_label("Student ID");
 
     $yaxis = $chart->get_yaxis(0, true);
-    $yaxis->set_label("Posts Before/After Cutoff");
+    $yaxis->set_label("Posts Before/During Final Window");
     $yaxis->set_min(0);
     $yaxis->set_max(100);
     $yaxis->set_stepsize(10);
@@ -156,17 +153,17 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     $chart->set_labels($students);
 
     // y-axis
-    $before_series = new \core\chart_series('Posts Before Cutoff', $posts_before);
+    $before_series = new \core\chart_series('Posts Before Final Window', $posts_before);
     $chart->add_series($before_series);
 
-    $after_series = new \core\chart_series('Posts After Cutoff', $posts_after);
+    $after_series = new \core\chart_series('Posts During Final Window', $posts_after);
     $chart->add_series($after_series);
 
     $xaxis = $chart->get_xaxis(0, true);
     $xaxis->set_label("Student ID");
 
     $yaxis = $chart->get_yaxis(0, true);
-    $yaxis->set_label("Posts Before/After Cutoff");
+    $yaxis->set_label("Posts Before/During Final Window");
     $yaxis->set_min(0);
     $yaxis->set_max(100);
     $yaxis->set_stepsize(10);

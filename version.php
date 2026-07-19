@@ -26,6 +26,6 @@ defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'block_delta_visualizations';
 $plugin->release = '0.1.0';
-$plugin->version = 2026052101;
+$plugin->version = 2026071802;
 $plugin->requires = 2022112800;
 $plugin->maturity = MATURITY_STABLE;

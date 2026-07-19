@@ -17,6 +17,9 @@
 /**
  * Models first student behaviour: Login Frequency
  *
+ * #TODO: Finish this behaviour pattern description
+ * Behaviour Pattern Description:
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -27,14 +30,10 @@ namespace block_delta_visualizations\student_patterns;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the LoginFrequency student behaviour pattern.
  */
 class LoginFrequency extends StudentBehaviourPattern
 {
-  use BarChart;
-  use NotRelatedToCourse;
-
   // static values for now
   protected $table = 'logstore_standard_log';
 
@@ -42,28 +41,76 @@ class LoginFrequency extends StudentBehaviourPattern
   {
     global $DB;
 
+    if (empty($params['courseids'])) {
+      return;
+    }
+
+    [$enrolledcourseidssql, $enrolledcourseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'enrolledcourseid'
+    );
+
+    [$accesscourseidssql, $accesscourseidsparams] = $DB->get_in_or_equal(
+      $params['courseids'],
+      SQL_PARAMS_NAMED,
+      'accesscourseid'
+    );
+
     $sql = "
-      WITH student_role as (
-        SELECT m.id as student_role_id
-        FROM m_role m
-        WHERE m.shortname = 'student'
+      WITH course_students AS (
+        SELECT DISTINCT ra.userid
+        FROM {role_assignments} ra
+        JOIN {role} r
+          ON r.id = ra.roleid
+        JOIN {context} ctx
+          ON ctx.id = ra.contextid
+        WHERE r.shortname = 'student'
+          AND ctx.contextlevel = :coursecontext
+          AND ctx.instanceid $enrolledcourseidssql
+      ),
+      student_logins AS (
+        SELECT
+          login.id,
+          login.userid,
+          login.timecreated,
+          LEAD(login.timecreated) OVER (
+            PARTITION BY login.userid
+            ORDER BY login.timecreated, login.id
+          ) AS next_login_time
+        FROM {logstore_standard_log} login
+        JOIN course_students cs
+          ON cs.userid = login.userid
+        WHERE login.eventname = :loginevent
+      ),
+      course_access_logins AS (
+        SELECT DISTINCT
+          login.id,
+          login.userid
+        FROM student_logins login
+        JOIN {logstore_standard_log} accesslog
+          ON accesslog.userid = login.userid
+          AND accesslog.eventname = :courseaccessevent
+          AND accesslog.courseid $accesscourseidssql
+          AND accesslog.timecreated >= login.timecreated
+          AND (
+            login.next_login_time IS NULL
+            OR accesslog.timecreated < login.next_login_time
+          )
       )
       SELECT
-        log.userid,
-        COUNT(*) as logincount
-      FROM m_logstore_standard_log log
-      JOIN m_role_assignments mra 
-        ON mra.userid = log.userid
-      join student_role sr
-        on mra.roleid = sr.student_role_id  
-      WHERE log.eventname LIKE :eventname
-      GROUP BY log.userid
-      ORDER BY log.userid ASC
+        userid,
+        COUNT(id) AS logincount
+      FROM course_access_logins
+      GROUP BY userid
+      ORDER BY userid ASC
     ";
 
     $records = $DB->get_records_sql($sql, [
-      'eventname' => '%user_loggedin%',
-    ]);
+      'coursecontext' => CONTEXT_COURSE,
+      'loginevent' => '\\core\\event\\user_loggedin',
+      'courseaccessevent' => '\\core\\event\\course_viewed',
+    ] + $enrolledcourseidsparams + $accesscourseidsparams);
 
     $this->records = $records;
   }
@@ -73,6 +120,7 @@ class LoginFrequency extends StudentBehaviourPattern
     $data = $this->records;
 
     $students = [];
+    $frequency = [];
 
     foreach ($data as $student_id => $value) {
       $students[] =  intval($student_id);

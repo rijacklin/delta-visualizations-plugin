@@ -24,85 +24,90 @@
 
 namespace block_delta_visualizations\student_patterns;
 
+use block_delta_visualizations\local\chart_behaviour;
+
 defined('MOODLE_INTERNAL') || die();
 
-// represents teacher activity behaviour state
-enum TimeRange: Int
-{
-  case HOURLY = 1;
-  case DAILY = 2;
-  case WEEKLY = 3;
-
-  public function label(): string
-  {
-    return match ($this) {
-      self::HOURLY => "Hourly",
-      self::DAILY => "Daily",
-      self::WEEKLY => "Weekly",
-    };
-  }
-}
-
+// #TOOO: Investigate what behaviour patterns don't require a course
 trait NotRelatedToCourse
 {
-  public function generate_chart(array $params)
+  protected function requires_course(): bool
   {
-    $behaviour_data = $this->query_behaviour_data($params);
-    return $this->create_bar_chart($behaviour_data);
+    return false;
   }
-}
-
-trait BarChart
-{
-  abstract protected function create_bar_chart();
-}
-
-trait PieChart
-{
-  abstract protected function create_pie_chart();
 }
 
 /**
  * Creates a renderer for the block_delta_visualizations
  *
  */
-abstract class StudentBehaviourPattern
+abstract class StudentBehaviourPattern implements chart_behaviour
 {
-  protected $table;
-
-  // TODO: Don't hardcode this
-  protected $time_range = TimeRange::WEEKLY;
   protected $records = [];
 
   abstract protected function query_behaviour_data(array $params);
 
-  public function generate_behaviour_chart(array $params)
+  abstract protected function create_bar_chart(): \core\chart_bar;
+
+  // #TOOO: Investigate what behaviour patterns don't require a course
+  protected function requires_course(): bool
   {
-    $chart = "";
+    return true;
+  }
 
-    $behaviour_data = $this->query_behaviour_data($params);
+  /**
+   * Calculate the inclusive reporting-window start from a validated time range.
+   *
+   * @param array $params Behaviour parameters.
+   * @param int|null $endtime End of the reporting window, defaulting to now.
+   * @return int Unix timestamp.
+   */
+  protected function get_start_time(array $params, ?int $endtime = null): int
+  {
+    $timerange = TimeRange::tryFrom((string)($params['time_range'] ?? TimeRange::WEEKLY->value));
 
-    if (!empty($params['courseids']) && $params['chart_type']) {
-      switch ($params['chart_type']) {
-        case "\core\chart_bar":
-          $chart = $this->create_bar_chart($behaviour_data);
-          break;
-        case "\core\chart_line":
-          $chart = $this->create_line_chart($behaviour_data);
-          break;
-      }
+    if ($timerange === null) {
+      throw new \invalid_parameter_exception('Unsupported time range');
     }
 
-    return $chart;
+    return ($endtime ?? time()) - $timerange->seconds();
   }
 
-  public function get_records()
+  /**
+   * Query the behaviour data and generate the requested chart type.
+   *
+   * @param array $params Behaviour and chart parameters.
+   * @return \core\chart_base|null
+   */
+  public function generate_chart(array $params): ?\core\chart_base
+  {
+    $this->records = [];
+
+    if ($this->requires_course() && empty($params['courseids'])) {
+      return null;
+    }
+
+    $this->query_behaviour_data($params);
+
+    switch ($params['chart_type'] ?? '\core\chart_bar') {
+      case '\core\chart_bar':
+        return $this->create_bar_chart();
+
+      case '\core\chart_line':
+        return $this->create_line_chart();
+
+      default:
+        throw new \invalid_parameter_exception('Unsupported chart type');
+    }
+  }
+
+  /**
+   * Provides public class access to behaviour pattern's records
+   *
+   * @return array Database records associated with behaviour pattern instance
+   */
+  public function get_records(): array
   {
     return $this->records;
-  }
-
-  public function get_time_range()
-  {
-    return $this->time_range;
   }
 }

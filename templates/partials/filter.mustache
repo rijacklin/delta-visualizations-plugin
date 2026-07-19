@@ -15,9 +15,9 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template block_delta_visualizations/instructor_dashboard
+    @template block_delta_visualizations/partials/filter
 
-    Template purpose and description.
+    Displays a single-course selector and date-range filter controls.
 
     Classes required for JS:
     * none
@@ -26,10 +26,24 @@
     * none
 
     Context variables required for this template:
-    * none
+    * courses - Available courses, each containing id and name.
+    * startdate - Initial start date in YYYY-MM-DD format.
+    * enddate - Initial end date in YYYY-MM-DD format.
 
     Example context (json):
     {
+        "courses": [
+            {
+                "id": 2,
+                "name": "Introduction to Moodle"
+            },
+            {
+                "id": 5,
+                "name": "Advanced Teaching"
+            }
+        ],
+        "startdate": "2026-01-01",
+        "enddate": "2026-01-31"
     }
 }}
 

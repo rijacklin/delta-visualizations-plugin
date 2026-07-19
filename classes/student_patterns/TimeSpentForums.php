@@ -27,13 +27,10 @@ namespace block_delta_visualizations\student_patterns;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Creates a renderer for the block_delta_visualizations
- *
+ * Models an instance of the TimeSpentForums student behaviour pattern.
  */
 class TimeSpentForums extends StudentBehaviourPattern
 {
-  use BarChart;
-
   public function query_behaviour_data(array $params)
   {
     global $DB;
@@ -50,20 +47,7 @@ class TimeSpentForums extends StudentBehaviourPattern
       'courseid'
     );
 
-    switch ($this->time_range) {
-      case TimeRange::HOURLY:
-        $start_time = $now - HOURSECS;
-        break;
-      case TimeRange::DAILY:
-        $start_time = $now - DAYSECS;
-        break;
-      case TimeRange::WEEKLY:
-        $start_time = $now - WEEKSECS;
-        break;
-      default:
-        $start_time = 0;
-        break;
-    }
+    $start_time = $this->get_start_time($params, $now);
 
     $sql = "
       WITH ordered_view_logs AS (
@@ -80,7 +64,7 @@ class TimeSpentForums extends StudentBehaviourPattern
             PARTITION BY log.userid, log.courseid
             ORDER BY log.timecreated, log.id
           ) AS next_event_time
-        FROM m_logstore_standard_log log
+        FROM {logstore_standard_log} log
         WHERE log.userid IS NOT NULL
           and log.courseid $courseidssql
           -- Filter by hourly/daily/weekly
@@ -95,6 +79,7 @@ class TimeSpentForums extends StudentBehaviourPattern
           action,
           LEAST(
             -- THRESHOLD: 30 mins (1800 seconds)
+            -- #TODO: (Rephrase) Cap estimated sessions at the configured duration
             COALESCE(next_event_time - timecreated, 0), :threshold
           ) AS estimated_seconds_spent
           FROM ordered_view_logs
@@ -109,8 +94,7 @@ class TimeSpentForums extends StudentBehaviourPattern
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // 30 minutes
-      'threshold' => 1800,
+      'threshold' => $params['sessioncap'],
       'starttime' => $start_time
     ] + $courseidsparams);
 
