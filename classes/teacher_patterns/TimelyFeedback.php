@@ -100,7 +100,7 @@ class TimelyFeedback extends TeacherBehaviourPattern
     ";
 
     // convert number of days for response to seconds
-    $response_days_in_seconds = (int)$params['days'] * $DAYSECS;
+    $response_days_in_seconds = (int)$params['days'] * DAYSECS;
 
     // access records from query using moodle DML and store on class instance
     $records = $DB->get_records_sql($sql, [

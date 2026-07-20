@@ -110,7 +110,7 @@ export const init = (rootSelector) => {
   root.addEventListener('submit', (event) => {
     const form = event.target.closest('[data-region="behaviour-filter"]');
 
-    // #TODO: Error handling - ignore other forms
+    // ignores all other forms on the page
     if (!form || !root.contains(form)) {
       return;
     }

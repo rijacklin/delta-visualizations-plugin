@@ -14,29 +14,18 @@
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace block_delta_visualizations\student_patterns;
+namespace block_delta_visualizations\local;
 
 defined('MOODLE_INTERNAL') || die();
 
-#TODO: Why isn't this a local class?
-
 /**
- * Represent time range periods and converts to text and millisecond representations.
+ * Represent time range periods and converts to millisecond representations.
  */
 enum TimeRange: string
 {
   case HOURLY = 'hourly';
   case DAILY = 'daily';
   case WEEKLY = 'weekly';
-
-  public function label(): string
-  {
-    return match ($this) {
-      self::HOURLY => 'Hourly',
-      self::DAILY => 'Daily',
-      self::WEEKLY => 'Weekly',
-    };
-  }
 
   public function seconds(): int
   {

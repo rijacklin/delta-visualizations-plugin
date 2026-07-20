@@ -25,6 +25,7 @@
 namespace block_delta_visualizations\student_patterns;
 
 use block_delta_visualizations\local\chart_behaviour;
+use block_delta_visualizations\local\TimeRange;
 
 defined('MOODLE_INTERNAL') || die();
 

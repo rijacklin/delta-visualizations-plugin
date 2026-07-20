@@ -36,7 +36,6 @@ use block_delta_visualizations\teacher_patterns\MonitoringForums;
 use block_delta_visualizations\student_patterns\ForumPostingFrequency;
 use block_delta_visualizations\student_patterns\LOAccessFrequency;
 use block_delta_visualizations\student_patterns\LoginFrequency;
-use block_delta_visualizations\student_patterns\NumberForumPosts;
 use block_delta_visualizations\student_patterns\StudentActiveTime;
 use block_delta_visualizations\student_patterns\StudentInactiveTime;
 use block_delta_visualizations\student_patterns\TimeSpentForums;
@@ -44,8 +43,6 @@ use block_delta_visualizations\student_patterns\TimeSpentLO;
 use block_delta_visualizations\student_patterns\TimeSpentAssignments;
 use block_delta_visualizations\student_patterns\NumberForumsViewed;
 use block_delta_visualizations\teacher_patterns\ConsistentUseLMS;
-
-use block_delta_visualizations\student_patterns\TimeRange;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -77,7 +74,6 @@ final class behaviour_registry
 
     return array_filter(
       $definitions,
-      // #TODO: In project report, explain use of static fn callback
       static fn(array $definition): bool => $definition['group'] === $group
     );
   }
@@ -104,7 +100,6 @@ final class behaviour_registry
   {
     $definition = self::get($id);
 
-    // #TODO: Explain use of PHP variable class names and relation to factory patter in project report
     $classname = $definition['class'];
     $behaviour = new $classname();
 
@@ -375,14 +370,6 @@ final class behaviour_registry
         'studentsuccess' => true,
         'defaults' => self::student_time_range_defaults(),
         'controls' => self::time_range_controls(),
-      ],
-      'number_forum_posts' => [
-        'class' => NumberForumPosts::class,
-        'name' => 'Number of forum posts',
-        'group' => self::GROUP_STUDENT,
-        'studentsuccess' => false,
-        'defaults' => ['chart_type' => '\\core\\chart_bar'],
-        'controls' => [],
       ],
       'forum_posting_consistency' => [
         'class' => ForumPostingConsistency::class,
