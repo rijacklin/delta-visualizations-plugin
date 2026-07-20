@@ -17,9 +17,10 @@
 /**
  * Models teacher behaviour: Consistent Use of LMS
  *
- * Behaviour Pattern Description: #TODO
- *
- * This behaviour is exhibited when the teacher interacts with the course a given threshold number of times each week.
+ * Behaviour Pattern Description: An instructor is actively engaged in their
+ * course when they are actively participating with the online courses they
+ * teach. Teachers who consistently log in and contribute to their courses
+ * exhibit this behaviour.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

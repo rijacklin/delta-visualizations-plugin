@@ -17,7 +17,9 @@
 /**
  * Models student behaviour: Forum Posting Consistency
  *
- * Behaviour Pattern Description: #TODO
+ * Behaviour Pattern Description: Compares the number of student forum posts
+ * before and after a cut-off date, reflecting how consistently students
+ * contribute to discussions in the course. 
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
