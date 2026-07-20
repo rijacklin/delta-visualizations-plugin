@@ -17,6 +17,9 @@
 /**
  * Models student behaviour: Time Spent on Forums
  *
+ * Behaviour Pattern Description: Time duration student views forums in the
+ * course.
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -78,8 +81,7 @@ class TimeSpentForums extends StudentBehaviourPattern
           component,
           action,
           LEAST(
-            -- THRESHOLD: 30 mins (1800 seconds)
-            -- #TODO: (Rephrase) Cap estimated sessions at the configured duration
+            -- Cap estimated sessions at the configured duration
             COALESCE(next_event_time - timecreated, 0), :threshold
           ) AS estimated_seconds_spent
           FROM ordered_view_logs

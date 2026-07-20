@@ -17,8 +17,8 @@
 /**
  * Models first student behaviour: Login Frequency
  *
- * #TODO: Finish this behaviour pattern description
- * Behaviour Pattern Description:
+ * Behaviour Pattern Description: Number of times each student both logs into the
+ * LMS and accesses the course.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

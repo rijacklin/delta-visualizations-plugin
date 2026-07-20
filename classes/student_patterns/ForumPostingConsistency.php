@@ -17,6 +17,8 @@
 /**
  * Models student behaviour: Forum Posting Consistency
  *
+ * Behaviour Pattern Description: #TODO
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -39,7 +41,6 @@ class ForumPostingConsistency extends StudentBehaviourPattern
       return [];
     }
 
-    // #TODO: rename?
     $window_seconds = (int)$params['final_window_weeks'] * WEEKSECS;
 
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(

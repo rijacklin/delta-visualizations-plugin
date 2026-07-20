@@ -17,6 +17,8 @@
 /**
  * Models student behaviour: Student Active Time
  *
+ * Behaviour Pattern Description: Time duration student accesses a course.
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

@@ -17,6 +17,9 @@
 /**
  * Models student behaviour: Time Spent on Assignments
  *
+ * Behaviour Pattern Description: Time duration of student first accessing the
+ * assignment learning object and submitting the assignment.
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

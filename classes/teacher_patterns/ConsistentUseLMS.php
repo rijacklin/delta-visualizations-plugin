@@ -17,8 +17,7 @@
 /**
  * Models teacher behaviour: Consistent Use of LMS
  *
- * #TODO: Finish this behaviour pattern description
- * Behaviour Pattern Description:
+ * Behaviour Pattern Description: #TODO
  *
  * This behaviour is exhibited when the teacher interacts with the course a given threshold number of times each week.
  *

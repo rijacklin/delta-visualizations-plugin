@@ -17,6 +17,9 @@
 /**
  * Models student behaviour: Student Inactive Time (time since last login)
  *
+ * Behaviour Pattern Description: Time duration student is away from the course
+ * (i.e., not logged in to Moodle and/or accessing the course).
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

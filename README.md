@@ -1,23 +1,15 @@
 # Delta Visualizations Plugin
 
-TODO
+This plugin provides real-time data visualizations 
+
+## Installation Instructions ##
+
 
 
 ## Usage ##
 
-TODO
+### Institution-Wide Settings
 
-
-## Documentation ##
-
-See the page [Plugin skeleton
-generator](https://docs.moodle.org/en/admin/tool/pluginskel/index) at moodle
-docs site.
-
-
-## Installing from Git ##
-
-TODO
 
 
 ## License ##

@@ -17,6 +17,9 @@
 /**
  * Models student behaviour: Learning Object Access Frequency
  *
+ * Behaviour Pattern Description: Number of times student accesses a learning
+ * object in the course.
+ *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
