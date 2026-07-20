@@ -128,9 +128,7 @@ final class behaviour_filter_validator
     $errors = \DateTimeImmutable::getLastErrors();
 
     if (
-      $date === false ||
-      ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) ||
-      $date->format('Y-m-d') !== $value
+      $date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0)) || $date->format('Y-m-d') !== $value
     ) {
       throw new \invalid_parameter_exception("Invalid {$name} filter");
     }

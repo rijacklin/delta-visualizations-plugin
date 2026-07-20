@@ -118,7 +118,7 @@ export const init = (rootSelector) => {
     // prevent default submit button behaviour which is a full-page refresh
     event.preventDefault();
 
-    // only refresh chart if the form controls ar valid (i.e., basic validation of the form and not the data being passed)
+    // only refresh chart if the form controls are valid (i.e., basic validation of the form and not the data being passed)
     if (form.reportValidity()) {
       refreshChart(form);
     }
