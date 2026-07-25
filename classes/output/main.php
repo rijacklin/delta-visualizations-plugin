@@ -26,8 +26,8 @@ namespace block_delta_visualizations\output;
 
 defined('MOODLE_INTERNAL') || die();
 
-use block_delta_visualizations\local\behaviour_filter_validator;
 use block_delta_visualizations\local\behaviour_registry;
+use block_delta_visualizations\local\BehaviourGroup;
 use renderer_base;
 use stdClass;
 use templatable;
@@ -41,7 +41,7 @@ class main implements templatable
   private array $courseids;
 
   /**
-   * Constructor.
+   * Constructs initial state for the instructor dashboard template.
    *
    * @param array $courseids Course IDs selected in the dashboard filter.
    * @param \context $context Block context used by chart Fragment requests.
@@ -53,7 +53,7 @@ class main implements templatable
   }
 
   /**
-   * Return output data ready for the dashboard template.
+   * Returns data for the client-side instructor dashboard template.
    *
    * @param renderer_base $output Renderer used to produce chart HTML.
    * @return stdClass Dashboard template data.
@@ -68,8 +68,8 @@ class main implements templatable
     $data->hasSelectedCourses = !empty($selected_courseids);
 
     $data->tabs = [
-      ['name' => 'Instructor Behaviour', 'content' => 'Instructor behaviours'],
-      ['name' => 'Instructor View of Student Behaviour', 'content' => 'Instructor-Student behaviours'],
+      ['name' => 'Instructor Behaviour'],
+      ['name' => 'Instructor View of Student Behaviour'],
     ];
 
     $data->teacher_behaviours = [];
@@ -78,12 +78,12 @@ class main implements templatable
     if ($data->hasSelectedCourses) {
       $data->teacher_behaviours = $this->render_behaviour_group(
         $output,
-        behaviour_registry::GROUP_TEACHER,
+        BehaviourGroup::TEACHER,
         $selected_courseids
       );
       $data->student_behaviours = $this->render_behaviour_group(
         $output,
-        behaviour_registry::GROUP_STUDENT,
+        BehaviourGroup::STUDENT,
         $selected_courseids
       );
     }
@@ -92,48 +92,39 @@ class main implements templatable
   }
 
   /**
-   * Render every registered behaviour in a dashboard group.
+   * Renders behaviour patterns for group (teacher behaviours and student behaviours).
    *
    * @param renderer_base $output Renderer used to produce chart HTML.
-   * @param string $group Registry group identifier.
+   * @param BehaviourGroup $group Registry group identifier.
    * @param array $courseids Selected course IDs.
    * @return array Behaviour block template data.
    */
-  private function render_behaviour_group(
-    renderer_base $output,
-    string $group,
-    array $courseids
-  ): array {
+  private function render_behaviour_group(renderer_base $output, BehaviourGroup $group, array $courseids): array
+  {
     $items = [];
+
+    // encode courseids in json for sending to client side
     $courseidsjson = json_encode($courseids, JSON_THROW_ON_ERROR);
 
+    // generate each behaviour pattern and chart to be renderered
     foreach (behaviour_registry::all($group) as $id => $definition) {
-      $filtervalues = behaviour_registry::filter_defaults($id);
-      $params = array_replace(
-        $definition['defaults'],
-        behaviour_filter_validator::validate($id, $filtervalues),
-        ['courseids' => $courseids]
-      );
+      $params = $definition['defaults'];
+      $params['courseids'] = $courseids;
 
       $behaviour = behaviour_registry::create($id);
       $chart = $behaviour->generate_chart($params);
 
-      if (!$chart instanceof \core\chart_base) {
-        continue;
-      }
-
       $item = [
         'name' => $definition['name'],
         'studentsuccess' => $definition['studentsuccess'],
-        'chart' => !empty($behaviour->get_records())
-          ? $output->render($chart)
-          : get_string('nodata', 'block_delta_visualizations'),
+        'chart' => !empty($behaviour->get_records()) ? $output->render($chart) : get_string('nodata', 'block_delta_visualizations'),
       ];
 
-      if (!empty($definition['controls'])) {
+      // builds filter template
+      $control = behaviour_registry::control_for_template($definition);
+      if ($control !== null) {
         $item['behaviour-id'] = $id;
-        $item['hascontrols'] = true;
-        $item['controls'] = behaviour_registry::controls_for_template($id, $filtervalues);
+        $item['control'] = $control;
         $item['contextid'] = $this->context->id;
         $item['courseidsjson'] = $courseidsjson;
       }
@@ -145,7 +136,7 @@ class main implements templatable
   }
 
   /**
-   * Return the current user's courses formatted for the selector.
+   * Return the current user's courses formatted for the course selector.
    *
    * @param int $teacherid User ID.
    * @return array Course selector data.

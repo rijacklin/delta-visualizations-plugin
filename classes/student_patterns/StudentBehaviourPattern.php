@@ -71,7 +71,7 @@ abstract class StudentBehaviourPattern implements chart_behaviour
       throw new \invalid_parameter_exception('Unsupported time range');
     }
 
-    return ($endtime ?? time()) - $timerange->seconds();
+    return $timerange->start_time($endtime ?? time());
   }
 
   /**

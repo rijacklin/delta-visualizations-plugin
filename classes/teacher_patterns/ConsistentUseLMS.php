@@ -29,6 +29,7 @@
 
 namespace block_delta_visualizations\teacher_patterns;
 
+use block_delta_visualizations\local\TimeRange;
 use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
@@ -42,8 +43,13 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
   {
     global $DB, $USER;
 
-    $course_start = (int)$params['starttime'];
-    $course_end = (int)$params['endtime'];
+    $timerange = TimeRange::tryFrom((string)($params['time_range'] ?? TimeRange::WEEKLY->value));
+    if ($timerange === null) {
+      throw new \invalid_parameter_exception('Unsupported time range');
+    }
+
+    $course_end = time();
+    $course_start = $timerange->start_time($course_end);
     $num_weeks = max(1 / WEEKSECS, ($course_end - $course_start + 1) / WEEKSECS);
 
     $teacher_id = $USER->id;

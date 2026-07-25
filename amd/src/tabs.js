@@ -31,40 +31,40 @@ export const init = (containerId) => {
     const container = document.getElementById(containerId);
 
     if (!container) {
-        return;
+      return;
     }
 
     const tabs = container.querySelectorAll('[role="tab"]');
     const panels = container.querySelectorAll('[role="tabpanel"]');
 
     const activate = (tab) => {
-        const target = tab.getAttribute('data-target');
+      const target = tab.getAttribute('data-target');
 
-        tabs.forEach(t => {
-            t.setAttribute('aria-selected', 'false');
-            t.classList.remove('active');
-        });
+      tabs.forEach(t => {
+        t.setAttribute('aria-selected', 'false');
+        t.classList.remove('active');
+      });
 
-        panels.forEach(panel => {
-            panel.classList.remove('active', 'show');
-            panel.hidden = true;
-        });
+      panels.forEach(panel => {
+        panel.classList.remove('active', 'show');
+        panel.hidden = true;
+      });
 
-        tab.setAttribute('aria-selected', 'true');
-        tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      tab.classList.add('active');
 
-        const panel = document.getElementById(target);
+      const panel = document.getElementById(target);
 
-        if (panel) {
-            panel.hidden = false;
-            panel.classList.add('active', 'show');
-        }
+      if (panel) {
+        panel.hidden = false;
+        panel.classList.add('active', 'show');
+      }
     };
 
     tabs.forEach(tab => {
-        tab.addEventListener('click', (event) => {
-            event.preventDefault();
-            activate(tab);
-        });
+      tab.addEventListener('click', (event) => {
+        event.preventDefault();
+        activate(tab);
+      });
     });
 };

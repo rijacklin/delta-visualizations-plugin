@@ -17,7 +17,7 @@
 {{!
     @template block_delta_visualizations/partials/behaviour_filter_form
 
-    Displays the registered filter controls used to refresh one behaviour chart.
+    Displays the report-period select filter.
 
     Classes required for JS:
     * none
@@ -30,94 +30,43 @@
     Context variables required for this template:
     * contextid - Moodle context ID for the fragment request.
     * courseidsjson - Selected course IDs encoded as JSON.
-    * controls - Filter controls and their type-specific rendering data.
-    * controls[].name - Form field name.
-    * controls[].label - Human-readable field label.
-    * controls[].value - Current field value.
-    * controls[].isselect - Whether to render a select control.
-    * controls[].isdate - Whether to render a date control.
-    * controls[].isnumber - Whether to render a number control.
-    * controls[].options - Options for a select control.
-    * controls[].hasmin - Whether a number control has a minimum.
-    * controls[].hasmax - Whether a number control has a maximum.
-    * controls[].min - Minimum number value.
-    * controls[].max - Maximum number value.
+    * label - Human-readable field label.
+    * options - Select options.
 
     Example context (json):
     {
         "contextid": 42,
         "courseidsjson": "[2,5]",
-        "controls": [
+        "label": "Reporting period",
+        "options": [
             {
-                "name": "period",
-                "label": "Period",
-                "value": "month",
-                "isselect": true,
-                "isdate": false,
-                "isnumber": false,
-                "options": [
-                    {
-                        "value": "week",
-                        "label": "Week",
-                        "selected": false
-                    },
-                    {
-                        "value": "month",
-                        "label": "Month",
-                        "selected": true
-                    }
-                ]
+                "value": "weekly",
+                "label": "Last 7 days",
+                "selected": true
             },
             {
-                "name": "startdate",
-                "label": "Start date",
-                "value": "2026-01-01",
-                "isselect": false,
-                "isdate": true,
-                "isnumber": false
-            },
-            {
-                "name": "threshold",
-                "label": "Threshold",
-                "value": 70,
-                "isselect": false,
-                "isdate": false,
-                "isnumber": true,
-                "hasmin": true,
-                "hasmax": true,
-                "min": 0,
-                "max": 100
+                "value": "monthly",
+                "label": "Last month",
+                "selected": false
             }
         ]
     }
 }}
 
 <form class="d-flex align-items-center flex-wrap gap-4" data-region="behaviour-filter" data-context-id="{{contextid}}" data-course-ids="{{courseidsjson}}">
-  {{#controls}}
-    <div class="d-flex align-items-center">
-      <label for="behaviour-filter-{{name}}-{{uniqid}}" class="mr-3 text-nowrap">
-        {{label}}
-      </label>
+  <div class="d-flex align-items-center">
+    <label for="behaviour-filter-time-range-{{uniqid}}" class="mr-3 text-nowrap">
+      {{label}}
+    </label>
 
-      {{#isselect}}
-        <select id="behaviour-filter-{{name}}-{{uniqid}}" class="custom-select" name="{{name}}">
-          {{#options}}
-            <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
-          {{/options}}
-        </select>
-      {{/isselect}}
-
-      {{#isdate}}
-        <input id="behaviour-filter-{{name}}-{{uniqid}}" class="form-control" type="date" name="{{name}}" value="{{value}}" required>
-      {{/isdate}}
-
-      {{#isnumber}}
-        <input id="behaviour-filter-{{name}}-{{uniqid}}" class="form-control" type="number" name="{{name}}" value="{{value}}" {{#hasmin}}min="{{min}}"{{/hasmin}} {{#hasmax}}max="{{max}}"{{/hasmax}} required>
-      {{/isnumber}}
-    </div>
-  {{/controls}}
+    <select id="behaviour-filter-time-range-{{uniqid}}" class="custom-select" name="filtervalue">
+      {{#options}}
+        <option value="{{value}}" {{#selected}}selected{{/selected}}>{{label}}</option>
+      {{/options}}
+    </select>
+  </div>
 
   <button type="submit" class="btn btn-primary">
-    Apply
+    {{#str}} apply, block_delta_visualizations {{/str}}
   </button>
 </form>

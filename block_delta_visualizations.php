@@ -52,19 +52,16 @@ class block_delta_visualizations extends block_base
       return $this->content;
     }
 
-    // initialize generic, empty class to store content
     $this->content = new stdClass();
 
     // grab the selected course ids (multi-select box at top of block)
     $selected_courseids = optional_param_array('courseids', [], PARAM_RAW);
 
-    // create an instance of the renderer for the current context
     $renderable = new \block_delta_visualizations\output\main(
       $selected_courseids,
       $this->context
     );
 
-    // store the html and dynamic data to be rendered for the block
     $this->content->text = $OUTPUT->render_from_template(
       'block_delta_visualizations/instructor_dashboard',
       $renderable->export_for_template($OUTPUT)

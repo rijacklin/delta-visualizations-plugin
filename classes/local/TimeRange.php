@@ -19,20 +19,39 @@ namespace block_delta_visualizations\local;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Represent time range periods and converts to millisecond representations.
+ * Represent reporting periods and calculates their starting timestamps.
  */
 enum TimeRange: string
 {
   case HOURLY = 'hourly';
   case DAILY = 'daily';
   case WEEKLY = 'weekly';
+  case MONTHLY = 'monthly';
+  case YEARLY = 'yearly';
 
-  public function seconds(): int
+  /**
+   * Calculate the start of this reporting period from an end timestamp.
+   *
+   * Month and year ranges use calendar arithmetic in the user's timezone,
+   * rather than treating a month or year as a fixed number of seconds.
+   *
+   * @param int $endtime End of the reporting period.
+   * @return int Start of the reporting period.
+   */
+  public function start_time(int $endtime): int
   {
-    return match ($this) {
+    if ($this === self::MONTHLY || $this === self::YEARLY) {
+      $period = $this === self::MONTHLY ? '-1 month' : '-1 year';
+
+      return (new \DateTimeImmutable("@{$endtime}"))->setTimezone(\core_date::get_user_timezone_object())->modify($period)->getTimestamp();
+    }
+
+    $seconds = match ($this) {
       self::HOURLY => HOURSECS,
       self::DAILY => DAYSECS,
       self::WEEKLY => WEEKSECS,
     };
+
+    return $endtime - $seconds;
   }
 }

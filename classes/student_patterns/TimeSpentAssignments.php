@@ -55,9 +55,11 @@ class TimeSpentAssignments extends StudentBehaviourPattern
       'block_delta_visualizations',
       'sessioncap'
     );
+
     if (!is_numeric($sessioncap)) {
       $sessioncap = 30 * MINSECS;
     }
+
     $sessioncap = max(MINSECS, min(DAYSECS, (int)$sessioncap));
 
     $sql = "

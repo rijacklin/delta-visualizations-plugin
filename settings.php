@@ -37,7 +37,7 @@ if ($ADMIN->fulltree) {
     'block_delta_visualizations/gradethreshold',
     get_string('settingsgradethreshold', 'block_delta_visualizations'),
     get_string('settingsgradethreshold_desc', 'block_delta_visualizations'),
-    70,
+    \block_delta_visualizations\local\behaviour_config::default('gradethreshold'),
     PARAM_FLOAT
   ));
 
@@ -46,7 +46,7 @@ if ($ADMIN->fulltree) {
     'block_delta_visualizations/feedbackgoal',
     get_string('settingsfeedbackgoal', 'block_delta_visualizations'),
     get_string('settingsfeedbackgoal_desc', 'block_delta_visualizations'),
-    60,
+    \block_delta_visualizations\local\behaviour_config::default('feedbackgoal'),
     PARAM_FLOAT
   ));
 
@@ -55,8 +55,17 @@ if ($ADMIN->fulltree) {
     'block_delta_visualizations/engagementthreshold',
     get_string('settingsengagementthreshold', 'block_delta_visualizations'),
     get_string('settingsengagementthreshold_desc', 'block_delta_visualizations'),
-    5,
+    \block_delta_visualizations\local\behaviour_config::default('engagementthreshold'),
     PARAM_FLOAT
+  ));
+
+  // sets the insitution's feedback policy in days.
+  $settings->add(new admin_setting_configtext(
+    'block_delta_visualizations/timelyfeedbackdays',
+    get_string('settingstimelyfeedbackdays', 'block_delta_visualizations'),
+    get_string('settingstimelyfeedbackdays_desc', 'block_delta_visualizations'),
+    \block_delta_visualizations\local\behaviour_config::default('timelyfeedbackdays'),
+    PARAM_INT
   ));
 
   // sets a limit on the amount of time (in seconds) between consecutive events. This is needed for proper event duration tracking as many behaviours in Moodle do not have an explicit end event to record in the database (e.g., exiting the Moodle site without logging out will cause issus with proper duration tracking)
@@ -64,7 +73,7 @@ if ($ADMIN->fulltree) {
     'block_delta_visualizations/sessioncap',
     get_string('settingssessioncap', 'block_delta_visualizations'),
     get_string('settingssessioncap_desc', 'block_delta_visualizations'),
-    30 * MINSECS,
+    \block_delta_visualizations\local\behaviour_config::default('sessioncap'),
     MINSECS
   );
   // the minimum cap on duration between two events is 1 minute

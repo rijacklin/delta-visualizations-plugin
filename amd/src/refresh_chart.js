@@ -14,7 +14,7 @@
 // along with Moodle. If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Handles refreshing any charts that have filters changed on the front-end.
+ * Handles refreshing charts when their reporting-period is filtered.
  *
  * @module     block_delta_visualizations/refresh_chart
  * @copyright  2026 Richard Jacklin <rijacklin1@gmail.com>
@@ -39,7 +39,7 @@ const destroyCharts = (chartArea) => {
 };
 
 /**
- * Refresh the given chart after filtering behaviour.
+ * Refresh the given chart after filtering.
  *
  * @param {HTMLFormElement} form
  */
@@ -55,19 +55,12 @@ const refreshChart = (form) => {
   // structures the behaviour and courses the server will return a chart fragment based on
   const args = {
     behaviourid: behaviourId,
-    courseids: form.dataset.courseIds
+    courseids: form.dataset.courseIds,
+    filtervalue: form.elements.filtervalue.value
   };
 
-  // instantiate the form data
-  new FormData(form).forEach((value, name) => {
-    args[name] = value;
-  });
-
-  // create arrays of form controls and their states so they can be restored after AJAX
   const controls = Array.from(form.elements);
   const disabledStates = controls.map((control) => control.disabled);
-
-  // iterate over and disable each control, then set the element to busy
   controls.forEach((control) => {
     control.disabled = true;
   });
@@ -96,7 +89,7 @@ const refreshChart = (form) => {
 };
 
 /**
- * Initialize chart refreshing for all behaviour filters
+ * Initialize chart refreshing.
  *
  * @param {string} rootSelector
  */
@@ -118,9 +111,6 @@ export const init = (rootSelector) => {
     // prevent default submit button behaviour which is a full-page refresh
     event.preventDefault();
 
-    // only refresh chart if the form controls are valid (i.e., basic validation of the form and not the data being passed)
-    if (form.reportValidity()) {
-      refreshChart(form);
-    }
+    refreshChart(form);
   });
 };

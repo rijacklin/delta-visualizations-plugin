@@ -17,7 +17,7 @@
 {{!
     @template block_delta_visualizations/partials/behaviour_block
 
-    Displays an expandable behaviour with optional filter controls and a
+    Displays an expandable behaviour block with an optional select filter and a
     rendered chart.
 
     Classes required for JS:
@@ -26,47 +26,38 @@
     Data attributes required for JS:
     * data-region="behaviour" - Identifies the behaviour containing a submitted filter.
     * data-behaviour - Supplies the dynamic registry ID when filters are present.
-    * data-region="behaviour-chart" - Identifies the chart replacement target.
+    * data-region="behaviour-chart" - Identifies the chart replacement target in the DOM.
 
     Context variables required for this template:
     * name - Human-readable behaviour name.
     * chart - Pre-rendered chart HTML.
     * behaviour-id - Optional behaviour registry identifier.
-    * hascontrols - Whether the filter form partial should be rendered.
-    * controls - Filter definitions passed to the filter form partial.
+    * control - Optional select data passed to the filter form partial.
     * contextid - Moodle context ID passed to the filter form partial.
     * courseidsjson - JSON-encoded course IDs passed to the filter form partial.
 
     Example context (json):
     {
-        "name": "Timely Feedback",
+        "name": "Student Active Time",
         "chart": "<div class=\"alert alert-info\">Example chart</div>",
-        "behaviour-id": "timely_feedback",
-        "hascontrols": true,
+        "behaviour-id": "student_active_time",
         "contextid": 42,
         "courseidsjson": "[2,5]",
-        "controls": [
-            {
-                "name": "days",
-                "label": "Response time",
-                "value": 8,
-                "isselect": true,
-                "isdate": false,
-                "isnumber": false,
-                "options": [
-                    {
-                        "value": 8,
-                        "label": "8 days",
-                        "selected": true
-                    },
-                    {
-                        "value": 14,
-                        "label": "14 days",
-                        "selected": false
-                    }
-                ]
-            }
-        ]
+        "control": {
+            "label": "Reporting period",
+            "options": [
+                {
+                    "value": "daily",
+                    "label": "Last 24 hours",
+                    "selected": false
+                },
+                {
+                    "value": "weekly",
+                    "label": "Last 7 days",
+                    "selected": true
+                }
+            ]
+        }
     }
 }}
 
@@ -82,10 +73,9 @@
     </span>
   </summary>
 
-  {{! Render filter controls for behaviour patterns that have them }}
-  {{#hascontrols}}
+  {{#control}}
     {{> block_delta_visualizations/partials/behaviour_filter_form }}
-  {{/hascontrols}}
+  {{/control}}
 
   {{! Make chart scrollable }}
   <div class="mt-3 mb-3 w-full overflow-x-auto" data-region="behaviour-chart">
