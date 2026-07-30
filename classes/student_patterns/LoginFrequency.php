@@ -34,9 +34,6 @@ defined('MOODLE_INTERNAL') || die();
  */
 class LoginFrequency extends StudentBehaviourPattern
 {
-  // static values for now
-  protected $table = 'logstore_standard_log';
-
   public function query_behaviour_data(array $params)
   {
     global $DB;
@@ -45,72 +42,95 @@ class LoginFrequency extends StudentBehaviourPattern
       return;
     }
 
-    [$enrolledcourseidssql, $enrolledcourseidsparams] = $DB->get_in_or_equal(
+    [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
       SQL_PARAMS_NAMED,
-      'enrolledcourseid'
-    );
-
-    [$accesscourseidssql, $accesscourseidsparams] = $DB->get_in_or_equal(
-      $params['courseids'],
-      SQL_PARAMS_NAMED,
-      'accesscourseid'
+      'courseid'
     );
 
     $sql = "
+      -- returns rows mapping distinct student to course for each selected course
       WITH course_students AS (
-        SELECT DISTINCT ra.userid
-        FROM {role_assignments} ra
+        SELECT DISTINCT
+          ra.userid,
+          c.id AS course_id,
+          c.startdate AS course_start,
+          -- account for active courses without end date
+          CASE
+            WHEN c.enddate = 0 THEN :querytime
+            ELSE c.enddate
+          END AS course_end
+        FROM {course} c
+        JOIN {context} ctx
+          ON ctx.contextlevel = :coursecontext
+          AND ctx.instanceid = c.id
+        JOIN {role_assignments} ra
+          ON ra.contextid = ctx.id
         JOIN {role} r
           ON r.id = ra.roleid
-        JOIN {context} ctx
-          ON ctx.id = ra.contextid
         WHERE r.shortname = 'student'
-          AND ctx.contextlevel = :coursecontext
-          AND ctx.instanceid $enrolledcourseidssql
+          AND c.id $courseidssql
       ),
+      -- returns flattened student-course rows across selected courses so login event is only queried once, not per course
+      students AS (
+        SELECT DISTINCT userid
+        FROM course_students
+      ),
+      -- returns login event for each student in in selected courses
       student_logins AS (
         SELECT
-          login.id,
+          login.id AS login_id,
           login.userid,
-          login.timecreated,
+          login.timecreated AS login_time,
+          -- grab subsequent login to estimate login event duration (as moodle doesn't always catch log outs)
           LEAD(login.timecreated) OVER (
             PARTITION BY login.userid
             ORDER BY login.timecreated, login.id
           ) AS next_login_time
         FROM {logstore_standard_log} login
-        JOIN course_students cs
-          ON cs.userid = login.userid
-        WHERE login.eventname = :loginevent
+        JOIN students
+          ON students.userid = login.userid
+        WHERE login.eventname = '\\core\\event\\user_loggedin'
       ),
+      -- returns the required login and course view for students
       course_access_logins AS (
         SELECT DISTINCT
-          login.id,
-          login.userid
-        FROM student_logins login
-        JOIN {logstore_standard_log} accesslog
-          ON accesslog.userid = login.userid
-          AND accesslog.eventname = :courseaccessevent
-          AND accesslog.courseid $accesscourseidssql
-          AND accesslog.timecreated >= login.timecreated
-          AND (
-            login.next_login_time IS NULL
-            OR accesslog.timecreated < login.next_login_time
+          logins.userid,
+          logins.login_id
+        FROM student_logins logins
+        JOIN course_students students
+          ON students.userid = logins.userid
+          AND logins.login_time >= students.course_start
+          AND logins.login_time <= students.course_end
+        -- check to ensure student accesses course before next login_event
+        WHERE EXISTS (
+          SELECT 1
+          FROM {logstore_standard_log} accesslog
+          WHERE accesslog.userid = logins.userid
+            AND accesslog.courseid = students.course_id
+            AND accesslog.eventname = '\\core\\event\\course_viewed'
+            AND accesslog.timecreated >= logins.login_time
+            AND (
+              logins.next_login_time IS NULL
+              OR accesslog.timecreated < logins.next_login_time
+            )
           )
       )
+      -- returns frequency total for each student in selected courses (sum of frequency when same student is enrolled in and acccess multiple selected courses during a login event)
       SELECT
-        userid,
-        COUNT(id) AS logincount
-      FROM course_access_logins
-      GROUP BY userid
-      ORDER BY userid ASC
+        students.userid AS student_id,
+        COUNT(accesses.login_id) AS login_frequency
+      FROM students
+      LEFT JOIN course_access_logins accesses
+        ON accesses.userid = students.userid
+      GROUP BY students.userid
+      ORDER BY students.userid
     ";
 
     $records = $DB->get_records_sql($sql, [
+      'querytime' => time(),
       'coursecontext' => CONTEXT_COURSE,
-      'loginevent' => '\\core\\event\\user_loggedin',
-      'courseaccessevent' => '\\core\\event\\course_viewed',
-    ] + $enrolledcourseidsparams + $accesscourseidsparams);
+    ] + $courseidsparams);
 
     $this->records = $records;
   }
@@ -122,9 +142,9 @@ class LoginFrequency extends StudentBehaviourPattern
     $students = [];
     $frequency = [];
 
-    foreach ($data as $student_id => $value) {
-      $students[] =  intval($student_id);
-      $frequency[] = $value->logincount;
+    foreach ($data as $value) {
+      $students[] = intval($value->student_id);
+      $frequency[] = $value->login_frequency;
     }
 
     $chart = new \core\chart_bar();

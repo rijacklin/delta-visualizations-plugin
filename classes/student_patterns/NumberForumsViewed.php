@@ -38,8 +38,6 @@ class NumberForumsViewed extends StudentBehaviourPattern
   {
     global $DB;
 
-    $now = time();
-
     if (empty($params['courseids'])) {
       return [];
     }
@@ -50,25 +48,53 @@ class NumberForumsViewed extends StudentBehaviourPattern
       'courseid'
     );
 
-    $start_time = $this->get_start_time($params, $now);
+    $reporting_end = time();
+    $reporting_start = $this->get_start_time($params, $reporting_end);
 
     $sql = "
+      -- return records of students in selected courses
+      WITH course_students AS (
+        SELECT DISTINCT
+          ra.userid,
+          c.id AS courseid,
+          c.startdate AS course_start,
+          c.enddate AS course_end
+        FROM {course} c
+        JOIN {context} ctx
+          ON ctx.contextlevel = :coursecontextlevel
+          AND ctx.instanceid = c.id
+        JOIN {role_assignments} ra
+          ON ra.contextid = ctx.id
+        JOIN {role} r
+          ON r.id = ra.roleid
+        WHERE r.shortname = 'student'
+          AND c.id $courseidssql
+      )
       SELECT
-        fr.userid,
-        COUNT(DISTINCT fr.postid)
-      FROM {forum_read} fr
-      JOIN {forum} f
-        ON f.id = fr.forumid
-      WHERE fr.userid IS NOT null
-        AND f.course $courseidssql
-        -- Filter by hourly/daily/weekly
-        AND fr.lastread >= :starttime
-      GROUP BY fr.userid
-      ORDER BY fr.userid ASC
+        -- generate unique column id (required for Moodle sql)
+        ROW_NUMBER() OVER (ORDER BY students.courseid, students.userid) AS recordid,
+        students.userid AS student_id,
+        students.courseid AS course_id,
+        -- count each forum view only once per student and course
+        COUNT(DISTINCT log.objectid) AS forums_viewed_count
+      FROM course_students students
+      LEFT JOIN {logstore_standard_log} log
+        ON log.userid = students.userid
+        AND log.courseid = students.courseid
+        AND log.eventname = '\\mod_forum\\event\\discussion_viewed'
+        -- handle client-side filtering of reporting periods
+        AND log.timecreated >= students.course_start
+        AND log.timecreated >= :reportstart
+        AND log.timecreated < students.course_end
+        AND log.timecreated < :reportend
+      GROUP BY students.userid, students.courseid
+      ORDER BY students.courseid, students.userid
     ";
 
     $records = $DB->get_records_sql($sql, [
-      'starttime' => $start_time
+      'coursecontextlevel' => CONTEXT_COURSE,
+      'reportstart' => $reporting_start,
+      'reportend' => $reporting_end,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -82,8 +108,8 @@ class NumberForumsViewed extends StudentBehaviourPattern
     $count = [];
 
     foreach ($data as $student_id => $value) {
-      $students[] = intval($student_id);
-      $count[] = intval($value->count);
+      $students[] = intval($value->student_id);
+      $count[] = intval($value->forums_viewed_count);
     }
 
     $chart = new \core\chart_bar();

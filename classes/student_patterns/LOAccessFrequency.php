@@ -38,8 +38,6 @@ class LOAccessFrequency extends StudentBehaviourPattern
   {
     global $DB;
 
-    $now = time();
-
     if (empty($params['courseids'])) {
       return [];
     }
@@ -50,31 +48,60 @@ class LOAccessFrequency extends StudentBehaviourPattern
       'courseid'
     );
 
-    $start_time = $this->get_start_time($params, $now);
+    // used for client-side filtering
+    $reporting_end = time();
+    $reporting_start = $this->get_start_time($params, $reporting_end);
 
     $sql = "
-      SELECT
-        log.userid,
-        COUNT(*)
-      FROM {logstore_standard_log} log
-      WHERE log.eventname IN (
-        '\\mod_forum\\event\\course_module_viewed',
-        '\\mod_assign\\event\\course_module_viewed',
-        '\\mod_resource\\event\\course_module_viewed',
-        '\\mod_url\\event\\course_module_viewed',
-        '\\mod_page\\event\\course_module_viewed',
-        '\\mod_lesson\\event\\course_module_viewed'
+      -- return records of students in selected courses
+      WITH course_students AS (
+        SELECT DISTINCT
+          ra.userid,
+          c.id AS courseid,
+          c.startdate AS course_start,
+          c.enddate AS course_end
+        FROM {course} c
+        JOIN {context} ctx
+          ON ctx.contextlevel = :coursecontextlevel
+          AND ctx.instanceid = c.id
+        JOIN {role_assignments} ra
+          ON ra.contextid = ctx.id
+        JOIN {role} r
+          ON r.id = ra.roleid
+        WHERE r.shortname = 'student'
+          AND c.id $courseidssql
       )
-        AND log.userid IS NOT null
-        AND log.courseid $courseidssql
-        -- Filter by hourly/daily/weekly
-        AND log.timecreated >= :starttime
-      GROUP BY log.userid
-      ORDER BY log.userid ASC
+      SELECT
+        -- returns total assignment view duration for each student in selected courses
+        ROW_NUMBER() OVER (ORDER BY students.courseid, students.userid) AS recordid,
+        students.userid as student_id,
+        students.courseid as course_id,
+        COUNT(log.id) AS learning_object_access_frequency
+      FROM course_students students
+      LEFT JOIN {logstore_standard_log} log
+        ON log.userid = students.userid
+        AND log.courseid = students.courseid
+        AND log.eventname IN (
+          '\\mod_forum\\event\\course_module_viewed',
+          '\\mod_assign\\event\\course_module_viewed',
+          '\\mod_resource\\event\\course_module_viewed',
+          '\\mod_url\\event\\course_module_viewed',
+          '\\mod_page\\event\\course_module_viewed',
+          '\\mod_lesson\\event\\course_module_viewed'
+        )
+        -- handle client-side filtering of reporting periods
+        AND log.timecreated >= students.course_start
+        AND log.timecreated >= :reportstart
+        AND log.timecreated < students.course_end
+        AND log.timecreated < :reportend
+      GROUP BY student_id, course_id
+      ORDER BY student_id, course_id
     ";
 
     $records = $DB->get_records_sql($sql, [
-      'starttime' => $start_time
+      'coursecontextlevel' => CONTEXT_COURSE,
+      'reportstart' => $reporting_start,
+      'reportend' => $reporting_end,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -87,9 +114,9 @@ class LOAccessFrequency extends StudentBehaviourPattern
     $students = [];
     $count = [];
 
-    foreach ($data as $student_id => $value) {
-      $students[] = intval($student_id);
-      $count[] = intval($value->count);
+    foreach ($data as $value) {
+      $students[] = intval($value->student_id);
+      $count[] = intval($value->learning_object_access_frequency);
     }
 
     $chart = new \core\chart_bar();

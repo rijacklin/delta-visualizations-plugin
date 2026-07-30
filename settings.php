@@ -50,12 +50,12 @@ if ($ADMIN->fulltree) {
     PARAM_FLOAT
   ));
 
-  // sets a minimum amount of engagement teachers should have in their courses each week.
+  // sets a minimum amount of engagement (i.e., number of interactions) teachers should have in their courses each week.
   $settings->add(new admin_setting_configtext(
-    'block_delta_visualizations/engagementthreshold',
-    get_string('settingsengagementthreshold', 'block_delta_visualizations'),
-    get_string('settingsengagementthreshold_desc', 'block_delta_visualizations'),
-    \block_delta_visualizations\local\behaviour_config::default('engagementthreshold'),
+    'block_delta_visualizations/interactionthreshold',
+    get_string('settingsinteractionthreshold', 'block_delta_visualizations'),
+    get_string('settingsinteractionthreshold_desc', 'block_delta_visualizations'),
+    \block_delta_visualizations\local\behaviour_config::default('interactionthreshold'),
     PARAM_FLOAT
   ));
 

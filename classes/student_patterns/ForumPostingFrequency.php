@@ -37,8 +37,6 @@ class ForumPostingFrequency extends StudentBehaviourPattern
   {
     global $DB;
 
-    $now = time();
-
     if (empty($params['courseids'])) {
       return [];
     }
@@ -49,25 +47,66 @@ class ForumPostingFrequency extends StudentBehaviourPattern
       'courseid'
     );
 
-    $start_time = $this->get_start_time($params, $now);
+    // used for client-side filtering
+    $reporting_end = time();
+    $reporting_start = $this->get_start_time($params, $reporting_end);
 
     $sql = "
+      -- return records of students in selected courses
+      WITH course_students AS (
+        SELECT DISTINCT
+          ra.userid,
+          c.id AS courseid,
+          c.startdate AS course_start,
+          c.enddate AS course_end
+        FROM {course} c
+        JOIN {context} ctx
+          ON ctx.contextlevel = :coursecontextlevel
+          AND ctx.instanceid = c.id
+        JOIN {role_assignments} ra
+          ON ra.contextid = ctx.id
+        JOIN {role} r
+          ON r.id = ra.roleid
+        WHERE r.shortname = 'student'
+          AND c.id $courseidssql
+      ),
+      -- return each student's forum posts from selected courses
+      post_counts AS (
+        SELECT
+          fp.userid,
+          fd.course AS courseid,
+          COUNT(fp.id) AS forum_post_frequency
+        FROM {forum_posts} fp
+        JOIN {forum_discussions} fd
+          ON fd.id = fp.discussion
+        JOIN course_students students
+          ON students.userid = fp.userid
+          AND students.courseid = fd.course
+        -- handle client-side filtering of reporting periods
+        WHERE fp.created >= students.course_start
+          AND fp.created >= :reportstart
+          AND fp.created < students.course_end
+          AND fp.created < :reportend
+        GROUP BY fp.userid, fd.course
+      )
       SELECT
-        fp.userid,
-        COUNT(fp.id)
-      FROM {forum_posts} fp
-      JOIN {forum_discussions} fd
-        ON fd.id = fp.discussion
-      WHERE fp.userid IS NOT null
-        AND fd.course $courseidssql
-        -- Filter by hourly/daily/weekly
-        AND fp.created >= :starttime
-      GROUP BY fp.userid
-      ORDER BY fp.userid ASC
+        -- generate unique column id (required for Moodle sql)
+        ROW_NUMBER() OVER (ORDER BY students.courseid, students.userid) AS recordid,
+        students.userid AS student_id,
+        students.courseid AS course_id,
+        -- count each forum post only once per student and course
+        COALESCE(counts.forum_post_frequency, 0) AS forum_post_frequency
+      FROM course_students students
+      LEFT JOIN post_counts counts
+        ON counts.userid = students.userid
+        AND counts.courseid = students.courseid
+      ORDER BY students.courseid, students.userid
     ";
 
     $records = $DB->get_records_sql($sql, [
-      'starttime' => $start_time
+      'coursecontextlevel' => CONTEXT_COURSE,
+      'reportstart' => $reporting_start,
+      'reportend' => $reporting_end,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -80,9 +119,9 @@ class ForumPostingFrequency extends StudentBehaviourPattern
     $students = [];
     $count = [];
 
-    foreach ($data as $student_id => $value) {
-      $students[] = intval($student_id);
-      $count[] = intval($value->count);
+    foreach ($data as $value) {
+      $students[] = intval($value->student_id);
+      $count[] = intval($value->forum_post_frequency);
     }
 
     $chart = new \core\chart_bar();

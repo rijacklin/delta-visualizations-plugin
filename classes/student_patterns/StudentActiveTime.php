@@ -26,6 +26,8 @@
 
 namespace block_delta_visualizations\student_patterns;
 
+use block_delta_visualizations\local\behaviour_config;
+
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -37,8 +39,6 @@ class StudentActiveTime extends StudentBehaviourPattern
   {
     global $DB;
 
-    $now = time();
-
     if (empty($params['courseids'])) {
       return [];
     }
@@ -49,86 +49,108 @@ class StudentActiveTime extends StudentBehaviourPattern
       'courseid'
     );
 
-    $start_time = $this->get_start_time($params, $now);
+    // used for client-side filtering
+    $reporting_end = time();
+    $reporting_start = $this->get_start_time($params, $reporting_end);
+
+    // grab site-defined session cap
+    $session_cap = behaviour_config::get('sessioncap');
 
     $sql = "
-      WITH course_events AS (
+      -- return records of students in selected courses
+      WITH course_students AS (
+        SELECT DISTINCT
+          ra.userid,
+          c.id AS courseid,
+          c.startdate AS course_start,
+          c.enddate AS course_end
+        FROM {course} c
+        JOIN {context} ctx
+          ON ctx.contextlevel = :coursecontextlevel
+          AND ctx.instanceid = c.id
+        JOIN {role_assignments} ra
+          ON ra.contextid = ctx.id
+        JOIN {role} r
+          ON r.id = ra.roleid
+        WHERE r.shortname = 'student'
+          AND c.id $courseidssql
+      ),
+      -- return all student events from moodle logs
+      ordered_course_events AS (
         SELECT
-          log.id,
+          log.id AS eventid,
           log.userid,
           log.courseid,
-          log.contextinstanceid,
           log.eventname,
           log.component,
           log.action,
           log.timecreated,
+          -- grab subsequent logs to estimate duration
           LEAD(log.timecreated) OVER (
             PARTITION BY log.userid, log.courseid
             ORDER BY log.timecreated, log.id
           ) AS next_event_time
         FROM {logstore_standard_log} log
-        WHERE log.userid IS NOT null
-          and log.courseid $courseidssql
-          -- Filter by hourly/daily/weekly
-          and log.timecreated >= :starttime
-          -- Filter both module-level actions (course modules) and core course view events
-          and (
-            (
-            log.component like 'mod_%'
-            and log.action in (
-              'viewed',
-              'submitted',
-              'uploaded',
-              'answered',
-              'attempted',
-              'started',
-              'completed',
-              'created',
-              'updated',
-              'commented',
-              'searched',
-              'downloaded'
-            )
-          )
-          OR log.eventname in (
-            '\core\event\course_viewed',
-            '\core\event\mycourses_viewed',
-            '\core\event\course_category_viewed'
-          )
-        )
-      ), student_active_time as (
-        select
-          userid,
-          courseid,
-          contextinstanceid as coursemoduleid,
-          component,
-          eventname,
-          next_event_time,
-          timecreated,
-          case
-            when next_event_time is null then 0
-            when next_event_time - timecreated <= 0 then 0
-            -- threshold value to cap events where student didn't log out 
-            when next_event_time - timecreated > :threshold1 then :threshold2
-            else next_event_time - timecreated
-          end as active_seconds,
-          cast(to_timestamp(timecreated) as date) as date_stamp
-        from course_events
-      )
-      select
+        JOIN course_students students
+          ON students.userid = log.userid
+          AND students.courseid = log.courseid
+        -- handle client-side filtering of reporting periods
+        WHERE log.timecreated >= students.course_start
+          AND log.timecreated >= :reportstart
+          AND log.timecreated <= students.course_end
+          AND log.timecreated <= :reportend
+      ),
+      -- returns duraton of student events
+      active_event_durations AS (
+        SELECT
         userid,
         courseid,
-        SUM(active_seconds) as active_time_seconds
-      FROM student_active_time
-      GROUP by userid, courseid
-      ORDER BY userid ASC
+        CASE
+          WHEN (
+            component LIKE 'mod_%'
+            OR eventname = '\\core\\event\\course_viewed'
+          ) THEN
+            CASE
+              -- cap long duration gaps where the student likely stopped using moodle
+              WHEN next_event_time - timecreated > :sessioncaplimit
+                THEN :sessioncapvalue
+              ELSE next_event_time - timecreated
+            END
+          -- catch--all for other events, these contribute no time to overall duration
+          ELSE 0
+        END AS active_seconds
+        FROM ordered_course_events
+      ),
+      -- sum the active time durations
+      active_time_totals AS (
+        SELECT
+          userid,
+          courseid,
+          SUM(active_seconds) AS active_time_seconds
+        FROM active_event_durations
+        GROUP BY userid, courseid
+      )
+      -- returns total duration student is active in course
+      SELECT
+        -- generate unique column id (required for Moodle sql)
+        ROW_NUMBER() OVER (ORDER BY students.courseid, students.userid) AS recordid,
+        students.userid,
+        students.courseid,
+        COALESCE(totals.active_time_seconds, 0) AS active_time_seconds
+      FROM course_students students
+      -- append students without logins to query results
+      LEFT JOIN active_time_totals totals
+        ON totals.userid = students.userid
+        AND totals.courseid = students.courseid
+      ORDER BY students.courseid, students.userid
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // 30 minutes
-      'threshold1' => $params['sessioncap'],
-      'threshold2' => $params['sessioncap'],
-      'starttime' => $start_time
+      'coursecontextlevel' => CONTEXT_COURSE,
+      'reportstart' => $reporting_start,
+      'reportend' => $reporting_end,
+      'sessioncaplimit' => $session_cap,
+      'sessioncapvalue' => $session_cap,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -143,7 +165,8 @@ class StudentActiveTime extends StudentBehaviourPattern
 
     foreach ($data as $student_id => $value) {
       $students[] =  intval($student_id);
-      $active_time[] = (int)ceil($value->active_time_seconds * 0.0002777777777778);
+      // convert active time in seconds to hours, rounded up
+      $active_time[] = (int)ceil($value->active_time_seconds / HOURSECS);
     }
 
     $chart = new \core\chart_bar();

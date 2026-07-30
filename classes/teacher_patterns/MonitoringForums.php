@@ -58,69 +58,202 @@ class MonitoringForums extends TeacherBehaviourPattern
       'courseid'
     );
 
+    // $sql = "
+    //   WITH teacher_response AS (
+    //     select
+    //       reply.id as post_id,
+    //       fd.id AS discussion_id
+    //     FROM {forum_discussions} fd
+    //     JOIN {forum_posts} studentpost
+    //       ON studentpost.discussion = fd.id
+    //     JOIN {forum_posts} reply
+    //       ON reply.parent = studentpost.id
+    //     WHERE fd.course $courseidssql
+    //       AND reply.userid = :userid
+    //     ORDER BY fd.id ASC
+    //   )
+    //   SELECT
+    //     post_id,
+    //     fp.message
+    //   FROM teacher_response tr
+    //   JOIN {forum_posts} fp
+    //     ON tr.discussion_id = fp.discussion
+    //   WHERE fp.parent = tr.post_id
+    //   ORDER BY post_id ASC
+    // ";
+
     $sql = "
-      WITH teacher_response AS (
-        select
-          reply.id as post_id,
-          fd.id AS discussion_id
-        FROM {forum_discussions} fd
-        JOIN {forum_posts} studentpost
-          ON studentpost.discussion = fd.id
-        JOIN {forum_posts} reply
-          ON reply.parent = studentpost.id
-        WHERE fd.course $courseidssql
-          AND reply.userid = :userid
-        ORDER BY fd.id ASC
+      WITH course_participants AS (
+        SELECT
+          ra.userid AS author_id,
+          c.id AS course_id,
+          c.startdate AS course_start,
+          c.enddate AS course_end,
+          MAX(
+            CASE
+              WHEN r.shortname = 'student' THEN 1
+              ELSE 0
+            END
+          ) AS author_is_student,
+          MAX(
+            CASE
+              WHEN r.shortname IN ('editingteacher', 'teacher') THEN 1
+              ELSE 0
+            END
+          ) AS author_is_teacher
+        FROM {course} c
+        JOIN {context} ctx
+          ON ctx.contextlevel = 50
+          AND ctx.instanceid = c.id
+        JOIN {role_assignments} ra
+          ON ra.contextid = ctx.id
+        JOIN {role} r
+          ON r.id = ra.roleid
+        WHERE r.shortname IN ('student', 'editingteacher', 'teacher')
+          AND c.id $courseidssql
+        GROUP BY
+          ra.userid,
+          c.id,
+          c.startdate,
+          c.enddate
       )
       SELECT
-        post_id,
-        fp.message
-      FROM teacher_response tr
-      JOIN {forum_posts} fp
-        ON tr.discussion_id = fp.discussion
-      WHERE fp.parent = tr.post_id
-      ORDER BY post_id ASC
+        post.id AS post_id,
+        discussion.course AS course_id,
+        participant.course_start,
+        participant.course_end,
+        discussion.forum AS forum_id,
+        discussion.id AS discussion_id,
+        discussion.firstpost AS discussion_first_post_id,
+        post.parent AS parent_post_id,
+        post.userid AS author_id,
+        participant.author_is_student,
+        participant.author_is_teacher,
+        post.created AS post_created_time,
+        post.modified AS post_modified_time,
+        post.subject AS post_subject,
+        post.message AS post_message
+      FROM {forum_posts} post
+      JOIN {forum_discussions} discussion
+        ON discussion.id = post.discussion
+      JOIN course_participants participant
+        ON participant.author_id = post.userid
+        AND participant.course_id = discussion.course
+      WHERE post.created >= participant.course_start
+        AND post.created < participant.course_end
+      ORDER BY
+        discussion.course,
+        discussion.id,
+        post.created,
+        post.id
     ";
 
     // access records from query using moodle DML and store on class instance
-    $records = $DB->get_records_sql($sql, [
-      'userid' => $USER->id,
-    ] + $courseidsparams);
+    $records = $DB->get_records_sql($sql, $courseidsparams);
     $this->records = $records;
 
     $data = new stdClass();
 
-    $improvement_keywords = ['thanks', 'thank you', 'appreciate', 'that worked'];
+    // grab all students from courses to ensure NotRequired being properly applied
+    $studentsql = "
+      SELECT
+        ra.id AS role_assignment_id,
+        ra.userid AS student_id,
+        c.id AS course_id
+      FROM {course} c
+      JOIN {context} ctx
+        ON ctx.contextlevel = 50
+        AND ctx.instanceid = c.id
+      JOIN {role_assignments} ra
+        ON ra.contextid = ctx.id
+      JOIN {role} r
+        ON r.id = ra.roleid
+      WHERE r.shortname = 'student'
+        AND c.id $courseidssql
+    ";
+    $students = $DB->get_records_sql($studentsql, $courseidsparams);
+
+    $response_keywords = [
+      'thanks',
+      'thank you',
+      'appreciate',
+      'appreciated',
+      'helpful',
+      'that worked',
+      'works now',
+      'fixed it',
+      'problem solved',
+      'issue resolved',
+      'makes sense',
+      'clears it up',
+      'answers my question',
+      'all good now',
+      'all set'
+    ];
 
     $posts = $records;
 
     $data = new stdClass();
 
-    // iterate over forum posts
-    foreach ($posts as $post) {
-      // message properties
-      $post_from = "";
-      $post_text = $post->message;
+    // all selected students begin as Not Required, including those without a forum post.
+    foreach ($students as $student) {
+      $message_key = $student->student_id . ':' . $student->course_id;
+      $data->{$message_key} = ActivityBehaviour::NotRequired;
+    }
 
-      // early exit
-      if (empty($post_text)) {
-        $data->{$post_from} = ActivityBehaviour::NotExhibited;
+    // Map each student post to its author and require monitoring for students who post.
+    $student_post_authors = [];
+    foreach ($records as $post) {
+      if ((int)$post->author_is_student !== 1) {
         continue;
       }
 
-      // default behaviour state
-      $behaviour = ActivityBehaviour::NotExhibited;
+      $post_key = $post->course_id . ':' . $post->post_id;
+      $message_key = $post->author_id . ':' . $post->course_id;
+      $student_post_authors[$post_key] = $post->author_id;
+      $data->{$message_key} = ActivityBehaviour::NotExhibited;
+    }
 
-      // check for time_commitment_keywords in message
-      foreach ($improvement_keywords as $keyword) {
-        if (!empty($keyword) && stripos($post_text, $keyword) !== false) {
-          // teacher is exhibiting the behaviour
-          $behaviour = ActivityBehaviour::Exhibited;
+    // Map teacher replies to the student whose post they directly answer.
+    $teacher_response_students = [];
+    foreach ($records as $response) {
+      if ((int)$response->author_is_teacher !== 1) {
+        continue;
+      }
+
+      $parent_key = $response->course_id . ':' . $response->parent_post_id;
+      if (!isset($student_post_authors[$parent_key])) {
+        continue;
+      }
+
+      $response_key = $response->course_id . ':' . $response->post_id;
+      $teacher_response_students[$response_key] = $student_post_authors[$parent_key];
+    }
+
+    // Look for a resolution follow-up from the same student after a teacher reply.
+    foreach ($records as $followup) {
+      if ((int)$followup->author_is_student !== 1) {
+        continue;
+      }
+
+      $parent_key = $followup->course_id . ':' . $followup->parent_post_id;
+      if (!isset($teacher_response_students[$parent_key])) {
+        continue;
+      }
+
+      $student_id = $teacher_response_students[$parent_key];
+      if ((int)$followup->author_id !== (int)$student_id) {
+        continue;
+      }
+
+      $followup_text = $followup->post_message ?? '';
+      foreach ($response_keywords as $keyword) {
+        if ($followup_text !== '' && stripos($followup_text, $keyword) !== false) {
+          $message_key = $student_id . ':' . $followup->course_id;
+          $data->{$message_key} = ActivityBehaviour::Exhibited;
           break;
         }
       }
-
-      $data->{$post_from} = $behaviour;
     }
 
     return $data;

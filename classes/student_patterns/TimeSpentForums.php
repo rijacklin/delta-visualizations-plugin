@@ -27,6 +27,8 @@
 
 namespace block_delta_visualizations\student_patterns;
 
+use block_delta_visualizations\local\behaviour_config;
+
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -38,8 +40,6 @@ class TimeSpentForums extends StudentBehaviourPattern
   {
     global $DB;
 
-    $now = time();
-
     if (empty($params['courseids'])) {
       return [];
     }
@@ -50,54 +50,92 @@ class TimeSpentForums extends StudentBehaviourPattern
       'courseid'
     );
 
-    $start_time = $this->get_start_time($params, $now);
+    // used for client-side filtering
+    $reporting_end = time();
+    $reporting_start = $this->get_start_time($params, $reporting_end);
+    $session_cap = behaviour_config::get('sessioncap');
 
     $sql = "
-      WITH ordered_view_logs AS (
+      -- return records of students in selected courses
+      WITH course_students AS (
+        SELECT DISTINCT
+          ra.userid,
+          c.id AS courseid,
+          c.startdate AS course_start,
+          c.enddate AS course_end
+        FROM {course} c
+        JOIN {context} ctx
+          ON ctx.contextlevel = :coursecontextlevel
+          AND ctx.instanceid = c.id
+        JOIN {role_assignments} ra
+          ON ra.contextid = ctx.id
+        JOIN {role} r
+          ON r.id = ra.roleid
+        WHERE r.shortname = 'student'
+          AND c.id $courseidssql
+      ),
+      -- return all student events from moodle logs
+      ordered_view_logs AS (
         SELECT
-          log.id,
-          log.userid,
-          log.courseid,
-          log.contextinstanceid,
-          log.eventname,
+          log.userid AS student_id,
+          log.courseid AS course_id,
+          students.course_start,
           log.component,
           log.action,
           log.timecreated,
+          -- grab subsequent logs to estimate duration
           LEAD(log.timecreated) OVER (
             PARTITION BY log.userid, log.courseid
             ORDER BY log.timecreated, log.id
           ) AS next_event_time
         FROM {logstore_standard_log} log
-        WHERE log.userid IS NOT NULL
-          and log.courseid $courseidssql
-          -- Filter by hourly/daily/weekly
-          and log.timecreated >= :starttime
+        JOIN course_students students
+          ON students.userid = log.userid
+          AND students.courseid = log.courseid
+        -- handle client-side filtering of reporting periods
+        WHERE log.timecreated >= students.course_start
+          AND log.timecreated >= :reportstart
+          AND log.timecreated <= students.course_end
+          AND log.timecreated <= :reportend
       ),
-      forum_view_duration AS (
+      -- sum the forum view time durations
+      forum_time_totals AS (
         SELECT
-          userid,
-          courseid,
-          contextinstanceid as coursemoduleid,
-          component,
-          action,
-          LEAST(
-            -- Cap estimated sessions at the configured duration
-            COALESCE(next_event_time - timecreated, 0), :threshold
-          ) AS estimated_seconds_spent
-          FROM ordered_view_logs
-          WHERE component = 'mod_forum' AND action = 'viewed'
+          student_id,
+          course_id,
+          SUM(
+            CASE
+              -- account for events with no timestamp (error handling)
+              WHEN next_event_time IS NULL THEN 0
+              -- default to sessioncap for events that exceed it
+              WHEN next_event_time - timecreated > :sessioncaplimit
+                THEN :sessioncapvalue
+              -- otherwise, calculate forum view duration
+              ELSE next_event_time - timecreated
+            END
+          ) AS total_seconds_spent
+        FROM ordered_view_logs
+        WHERE component = 'mod_forum'
+          AND action = 'viewed'
+        GROUP BY student_id, course_id
       )
+      -- returns total forum view duration for each student in selected courses
       SELECT
-        userid,
-        SUM(estimated_seconds_spent) AS total_seconds_spent
-      FROM forum_view_duration
-      GROUP BY userid
-      ORDER BY userid ASC
+        -- generate unique column id (required for Moodle sql)
+        ROW_NUMBER() OVER (ORDER BY student_id, course_id) AS recordid,
+        student_id,
+        course_id,
+        total_seconds_spent
+      FROM forum_time_totals
+      ORDER BY student_id, course_id
     ";
 
     $records = $DB->get_records_sql($sql, [
-      'threshold' => $params['sessioncap'],
-      'starttime' => $start_time
+      'coursecontextlevel' => CONTEXT_COURSE,
+      'reportstart' => $reporting_start,
+      'reportend' => $reporting_end,
+      'sessioncaplimit' => $session_cap,
+      'sessioncapvalue' => $session_cap,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -110,9 +148,10 @@ class TimeSpentForums extends StudentBehaviourPattern
     $students = [];
     $forum_view_time = [];
 
-    foreach ($data as $student_id => $value) {
-      $students[] =  intval($student_id);
-      $forum_view_time[] = (int)ceil($value->total_seconds_spent * 0.0002777777777778);
+    foreach ($data as $value) {
+      $students[] =  intval($value->student_id);
+      // convert active time in seconds to hours, rounded up
+      $forum_view_time[] = (int)ceil($value->total_seconds_spent / HOURSECS);
     }
 
     $chart = new \core\chart_bar();

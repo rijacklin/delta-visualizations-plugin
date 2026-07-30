@@ -38,8 +38,6 @@ class TimeSpentAssignments extends StudentBehaviourPattern
   {
     global $DB;
 
-    $now = time();
-
     if (empty($params['courseids'])) {
       return [];
     }
@@ -50,71 +48,108 @@ class TimeSpentAssignments extends StudentBehaviourPattern
       'courseid'
     );
 
-    $start_time = $this->get_start_time($params, $now);
-    $sessioncap = $params['sessioncap'] ?? get_config(
-      'block_delta_visualizations',
-      'sessioncap'
-    );
-
-    if (!is_numeric($sessioncap)) {
-      $sessioncap = 30 * MINSECS;
-    }
-
-    $sessioncap = max(MINSECS, min(DAYSECS, (int)$sessioncap));
+    // used for client-side filtering
+    $reporting_end = time();
+    $reporting_start = $this->get_start_time($params, $reporting_end);
 
     $sql = "
-      WITH ordered_course_logs AS (
-        SELECT
-          log.id,
-          log.userid,
-          log.courseid,
-          log.component,
-          log.action,
-          log.timecreated,
-          LEAD(log.timecreated) OVER (
-            PARTITION BY log.userid, log.courseid
-            ORDER BY log.timecreated, log.id
-          ) AS next_event_time
-        FROM {logstore_standard_log} log
+      -- return records of students in selected courses
+      WITH course_students AS (
+        SELECT DISTINCT
+          ra.userid as student_id,
+          c.id AS course_id,
+          c.startdate AS course_start,
+          c.enddate AS course_end
+        FROM {course} c
+        JOIN {context} ctx
+          ON ctx.contextlevel = :coursecontextlevel
+          AND ctx.instanceid = c.id
         JOIN {role_assignments} ra
-          ON ra.userid = log.userid
+          ON ra.contextid = ctx.id
         JOIN {role} r
           ON r.id = ra.roleid
-          AND r.shortname = 'student'
-        JOIN {context} ctx
-          ON ctx.id = ra.contextid
-          AND ctx.contextlevel = :coursecontext
-          AND ctx.instanceid = log.courseid
-        WHERE log.userid IS NOT NULL
-          AND log.courseid $courseidssql
-          AND log.timecreated >= :starttime
+        WHERE r.shortname = 'student'
+          AND c.id $courseidssql
       ),
-      assignment_view_durations AS (
+      -- returns each student's first view of every assignment during the course.
+      first_assignment_views AS (
         SELECT
-          userid AS studentid,
-          CASE
-            WHEN next_event_time IS NULL THEN 0
-            WHEN next_event_time <= timecreated THEN 0
-            WHEN next_event_time - timecreated > :sessioncaplimit THEN :sessioncapvalue
-            ELSE next_event_time - timecreated
-          END AS time_spent_on_assignment
-        FROM ordered_course_logs
-        WHERE component = 'mod_assign'
-          AND action = 'viewed'
+          student_id,
+          course_id,
+          students.course_start,
+          students.course_end,
+          log.contextinstanceid AS coursemoduleid,
+          MIN(log.timecreated) AS first_view_time
+        FROM course_students students
+        JOIN {logstore_standard_log} log
+          ON log.userid = students.student_id 
+          AND log.courseid = students.course_id
+        WHERE log.eventname = '\\mod_assign\\event\\course_module_viewed'
+          -- handle client-side filtering of reporting periods
+          AND log.timecreated >= students.course_start
+          AND log.timecreated >= :reportstart
+          AND log.timecreated <= students.course_end
+          AND log.timecreated <= :reportendview
+        GROUP BY
+          student_id,
+          course_id,
+          students.course_start,
+          students.course_end,
+          log.contextinstanceid
+      ),
+      -- returns measured duration from assignment's first view to submission.
+      assignment_durations AS (
+        SELECT
+          views.student_id,
+          views.course_id,
+          views.coursemoduleid,
+          COALESCE(
+            MIN(submission.timecreated) - views.first_view_time,
+            0
+          ) AS assignment_time_seconds
+        FROM first_assignment_views views
+        LEFT JOIN {logstore_standard_log} submission
+          ON submission.userid = views.student_id
+          AND submission.courseid = views.course_id
+          AND submission.contextinstanceid = views.coursemoduleid
+          AND submission.eventname = '\\mod_assign\\event\\assessable_submitted'
+          -- handle client-side filtering of reporting periods
+          AND submission.timecreated >= views.first_view_time
+          AND submission.timecreated <= views.course_end
+          AND submission.timecreated <= :reportendsubmission
+        GROUP BY
+          views.student_id,
+          views.course_id,
+          views.coursemoduleid,
+          views.first_view_time
+      ),
+      -- returns combined assignment durations for each student and course.
+      assignment_totals AS (
+        SELECT
+          student_id,
+          course_id,
+          SUM(assignment_time_seconds) AS assignment_time_seconds
+        FROM assignment_durations
+        GROUP BY student_id, course_id
       )
       SELECT
-        studentid,
-        SUM(time_spent_on_assignment) AS total_time_spent
-      FROM assignment_view_durations
-      GROUP BY studentid
-      ORDER BY studentid ASC
+        -- returns total assignment view duration for each student in selected courses
+        ROW_NUMBER() OVER (ORDER BY students.student_id, students.course_id) AS recordid,
+        students.student_id,
+        students.course_id,
+        COALESCE(totals.assignment_time_seconds, 0) AS assignment_time_seconds
+      FROM course_students students
+      LEFT JOIN assignment_totals totals
+        ON totals.student_id = students.student_id
+        AND totals.course_id = students.course_id
+      ORDER BY students.student_id, students.course_id
     ";
 
     $records = $DB->get_records_sql($sql, [
-      'coursecontext' => CONTEXT_COURSE,
-      'sessioncaplimit' => $sessioncap,
-      'sessioncapvalue' => $sessioncap,
-      'starttime' => $start_time,
+      'coursecontextlevel' => CONTEXT_COURSE,
+      'reportstart' => $reporting_start,
+      'reportendview' => $reporting_end,
+      'reportendsubmission' => $reporting_end,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -128,8 +163,9 @@ class TimeSpentAssignments extends StudentBehaviourPattern
     $assign_view_time = [];
 
     foreach ($data as $student_id => $value) {
-      $students[] =  intval($student_id);
-      $assign_view_time[] = (int)ceil($value->total_time_spent / HOURSECS);
+      $students[] = intval($value->student_id);
+      // convert active time in seconds to hours, rounded up
+      $assign_view_time[] = (int)ceil($value->assignment_time_seconds / HOURSECS);
     }
 
     $chart = new \core\chart_bar();

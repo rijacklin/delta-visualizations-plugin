@@ -37,7 +37,6 @@ use block_delta_visualizations\student_patterns\ForumPostingFrequency;
 use block_delta_visualizations\student_patterns\LOAccessFrequency;
 use block_delta_visualizations\student_patterns\LoginFrequency;
 use block_delta_visualizations\student_patterns\StudentActiveTime;
-use block_delta_visualizations\student_patterns\StudentInactiveTime;
 use block_delta_visualizations\student_patterns\TimeSpentForums;
 use block_delta_visualizations\student_patterns\TimeSpentLO;
 use block_delta_visualizations\student_patterns\TimeSpentAssignments;
@@ -156,7 +155,7 @@ final class behaviour_registry
   {
     $gradethreshold = behaviour_config::get('gradethreshold');
     $feedbackgoal = behaviour_config::get('feedbackgoal');
-    $engagementthreshold = behaviour_config::get('engagementthreshold');
+    $interactionthreshold = behaviour_config::get('interactionthreshold');
     $timelyfeedbackdays = behaviour_config::get('timelyfeedbackdays');
 
     return [
@@ -173,10 +172,7 @@ final class behaviour_registry
         'name' => 'Personalized Feedback',
         'group' => BehaviourGroup::TEACHER,
         'studentsuccess' => true,
-        'defaults' => [
-          'gradethreshold' => $gradethreshold,
-          'feedbackgoal' => $feedbackgoal,
-        ],
+        'defaults' => ['feedbackgoal' => $feedbackgoal],
         'control' => null,
       ],
       'timely_feedback' => [
@@ -184,10 +180,7 @@ final class behaviour_registry
         'name' => 'Timely Feedback',
         'group' => BehaviourGroup::TEACHER,
         'studentsuccess' => false,
-        'defaults' => [
-          'gradethreshold' => $gradethreshold,
-          'days' => $timelyfeedbackdays,
-        ],
+        'defaults' => ['days' => $timelyfeedbackdays],
         'control' => null,
       ],
       'monitoring_forums' => [
@@ -204,7 +197,7 @@ final class behaviour_registry
         'group' => BehaviourGroup::TEACHER,
         'studentsuccess' => false,
         'defaults' => [
-          'engagementthreshold' => $engagementthreshold,
+          'interactionthreshold' => $interactionthreshold,
           'time_range' => TimeRange::WEEKLY->value,
         ],
         'control' => self::time_range_control(),
@@ -220,14 +213,6 @@ final class behaviour_registry
       'student_active_time' => [
         'class' => StudentActiveTime::class,
         'name' => 'Student active time',
-        'group' => BehaviourGroup::STUDENT,
-        'studentsuccess' => true,
-        'defaults' => self::student_time_range_defaults(true),
-        'control' => self::time_range_control(),
-      ],
-      'student_inactive_time' => [
-        'class' => StudentInactiveTime::class,
-        'name' => 'Student inactive time',
         'group' => BehaviourGroup::STUDENT,
         'studentsuccess' => true,
         'defaults' => self::student_time_range_defaults(true),

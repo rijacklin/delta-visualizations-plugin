@@ -43,7 +43,7 @@ class ForumPostingConsistency extends StudentBehaviourPattern
       return [];
     }
 
-    $window_seconds = (int)$params['final_window_weeks'] * WEEKSECS;
+    $cutoff_window_seconds = (int)$params['final_window_weeks'] * WEEKSECS;
 
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
@@ -52,47 +52,78 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     );
 
     $sql = "
-      WITH course_windows AS (
-        SELECT
-          c.id,
-          c.startdate,
-          c.enddate,
-          c.enddate - :windowseconds AS cutoffdate
+      -- return records of students in selected courses
+      WITH course_students AS (
+        SELECT DISTINCT
+          ra.userid,
+          c.id AS courseid,
+          c.startdate AS course_start,
+          c.enddate AS course_end,
+          c.enddate - :cutoffwindow AS course_cutoff
         FROM {course} c
-        WHERE c.id $courseidssql
-          AND c.enddate > c.startdate
+        JOIN {context} ctx
+          ON ctx.contextlevel = :coursecontextlevel
+          AND ctx.instanceid = c.id
+        JOIN {role_assignments} ra
+          ON ra.contextid = ctx.id
+        JOIN {role} r
+          ON r.id = ra.roleid
+        WHERE r.shortname = 'student'
+          AND c.id $courseidssql
+          AND c.enddate > c.startdate + :minimumduration
+      ),
+      -- return posts from before and during the final two weeks of each course
+      post_counts AS (
+        SELECT
+          fp.userid,
+          fd.course AS courseid,
+          SUM(
+            CASE
+              WHEN fp.created < students.course_cutoff THEN 1
+              ELSE 0
+            END
+          ) AS forum_posts_before,
+          SUM(
+            CASE
+              WHEN fp.created >= students.course_cutoff THEN 1
+              ELSE 0
+            END
+          ) AS forum_posts_after,
+          COUNT(fp.id) AS total_posts
+        FROM {forum_posts} fp
+        JOIN {forum_discussions} fd
+          ON fd.id = fp.discussion
+        JOIN course_students students
+          ON students.userid = fp.userid
+          AND students.courseid = fd.course
+        WHERE fp.created >= students.course_start
+          AND fp.created < students.course_end
+        GROUP BY fp.userid, fd.course
       )
       SELECT
-        fp.userid,
-        SUM(
-          CASE
-            WHEN fp.created < cw.cutoffdate
-            THEN 1
-            ELSE 0
-          END
-        ) AS posts_before,
-        SUM(
-          CASE
-            WHEN fp.created >= cw.cutoffdate
-            THEN 1
-            ELSE 0
-          END
-        ) AS posts_after,
-        COUNT(fp.id) AS total_posts
-      FROM {forum_posts} fp
-      JOIN {forum_discussions} fd
-        ON fd.id = fp.discussion
-      JOIN course_windows cw
-        ON cw.id = fd.course
-      WHERE fp.userid IS NOT NULL
-        AND fp.created >= cw.startdate
-        AND fp.created <= cw.enddate
-      GROUP BY fp.userid
-      ORDER BY fp.userid ASC
+        -- generate unique column id (required for Moodle sql)
+        ROW_NUMBER() OVER (ORDER BY students.courseid, students.userid) AS recordid,
+        students.userid AS student_id,
+        students.courseid AS course_id,
+        COALESCE(counts.forum_posts_before, 0) AS forum_posts_before,
+        COALESCE(counts.forum_posts_after, 0) AS forum_posts_after,
+        -- return proportion of posts made during the final two weeks
+        CASE
+          WHEN COALESCE(counts.total_posts, 0) = 0 THEN 0
+          ELSE
+            1.0 * counts.forum_posts_after / counts.total_posts
+        END AS forum_posting_end_loading_score
+      FROM course_students students
+      LEFT JOIN post_counts counts
+        ON counts.userid = students.userid
+        AND counts.courseid = students.courseid
+      ORDER BY students.courseid, students.userid
     ";
 
     $records = $DB->get_records_sql($sql, [
-      'windowseconds' => $window_seconds
+      'coursecontextlevel' => CONTEXT_COURSE,
+      'cutoffwindow' => $cutoff_window_seconds,
+      'minimumduration' => $cutoff_window_seconds,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -106,8 +137,8 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     $posts_before = [];
     $posts_after = [];
 
-    foreach ($data as $student_id => $value) {
-      $students[] = intval($student_id);
+    foreach ($data as $value) {
+      $students[] = intval($value->student_id);
       $posts_before[] = intval($value->posts_before);
       $posts_after[] = intval($value->posts_after);
     }
@@ -144,10 +175,10 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     $posts_before = [];
     $posts_after = [];
 
-    foreach ($data as $student_id => $value) {
-      $students[] = intval($student_id);
-      $posts_before[] = intval($value->posts_before);
-      $posts_after[] = intval($value->posts_after);
+    foreach ($data as $value) {
+      $students[] = intval($value->student_id);
+      $posts_before[] = intval($value->forum_posts_before);
+      $posts_after[] = intval($value->forum_posts_after);
     }
 
     $chart = new \core\chart_bar();

@@ -27,6 +27,8 @@
 
 namespace block_delta_visualizations\student_patterns;
 
+use block_delta_visualizations\local\behaviour_config;
+
 defined('MOODLE_INTERNAL') || die();
 
 /**
@@ -38,8 +40,6 @@ class TimeSpentLO extends StudentBehaviourPattern
   {
     global $DB;
 
-    $now = time();
-
     if (empty($params['courseids'])) {
       return [];
     }
@@ -50,61 +50,98 @@ class TimeSpentLO extends StudentBehaviourPattern
       'courseid'
     );
 
-    $start_time = $this->get_start_time($params, $now);
+    $session_cap = behaviour_config::get('sessioncap');
+
+    // used for client-side filtering
+    $reporting_end = time();
+    $reporting_start = $this->get_start_time($params, $reporting_end);
 
     $sql = "
-      WITH ordered_view_logs AS (
+      -- return records of students in selected courses
+      WITH course_students AS (
+        SELECT DISTINCT
+          ra.userid,
+          c.id AS courseid,
+          c.startdate AS course_start,
+          c.enddate AS course_end
+        FROM {course} c
+        JOIN {context} ctx
+          ON ctx.contextlevel = :coursecontextlevel
+          AND ctx.instanceid = c.id
+        JOIN {role_assignments} ra
+          ON ra.contextid = ctx.id
+        JOIN {role} r
+          ON r.id = ra.roleid
+        WHERE r.shortname = 'student'
+          AND c.id $courseidssql
+      ),
+      -- return all student events from moodle logs
+      ordered_view_logs AS (
         SELECT
-          log.id,
           log.userid,
           log.courseid,
-          log.contextinstanceid,
           log.eventname,
-          log.component,
           log.timecreated,
           LEAD(log.timecreated) OVER (
             PARTITION BY log.userid, log.courseid
             ORDER BY log.timecreated, log.id
           ) AS next_event_time
         FROM {logstore_standard_log} log
-        WHERE log.userid IS NOT NULL
-          and log.courseid $courseidssql
-          -- Filter by hourly/daily/weekly
-          and log.timecreated >= :starttime
-          -- Filter both module-level actions (course modules) and core course view events
+        JOIN course_students students
+          ON students.userid = log.userid
+          AND students.courseid = log.courseid
+        -- handle client-side filtering of reporting periods
+        WHERE log.timecreated >= students.course_start
+          AND log.timecreated >= :reportstart
+          AND log.timecreated <= students.course_end
+          AND log.timecreated <= :reportend
       ),
+      -- calculates estimated duration of learning object views
       module_view_duration AS (
         SELECT
           userid,
           courseid,
-          contextinstanceid as coursemoduleid,
-          component,
           LEAST(
-            -- THRESHOLD: 30 mins (1800 seconds)
-            COALESCE(next_event_time - timecreated, 0), :threshold
+            COALESCE(next_event_time - timecreated, 0),
+            :sessioncap
           ) AS estimated_seconds_spent
-          FROM ordered_view_logs
-          WHERE eventname IN (
-            '\\mod_forum\\event\\course_module_viewed',
-            '\\mod_assign\\event\\course_module_viewed',
-            '\\mod_resource\\event\\course_module_viewed',
-            '\\mod_url\\event\\course_module_viewed',
-            '\\mod_page\\event\\course_module_viewed',
-            '\\mod_lesson\\event\\course_module_viewed'
-          )
+        FROM ordered_view_logs
+        WHERE eventname IN (
+          '\\mod_resource\\event\\course_module_viewed',
+          '\\mod_url\\event\\course_module_viewed',
+          '\\mod_page\\event\\course_module_viewed',
+          '\\mod_lesson\\event\\course_module_viewed'
+        )
+      ),
+      -- sum the learning object view time durations
+      learning_object_totals AS (
+        SELECT
+          userid,
+          courseid,
+          SUM(estimated_seconds_spent) AS learning_object_view_time_seconds
+        FROM module_view_duration
+        GROUP BY userid, courseid
       )
       SELECT
-        userid,
-        SUM(estimated_seconds_spent) AS total_seconds_spent
-      FROM module_view_duration
-      GROUP BY userid
-      ORDER BY userid ASC
+        -- generate unique column id (required for Moodle sql)
+        ROW_NUMBER() OVER (ORDER BY students.courseid, students.userid) AS recordid,
+        students.userid AS student_id,
+        students.courseid AS course_id,
+        -- calculate learning object view duration for each student (set to 0 if no logs)
+        COALESCE(totals.learning_object_view_time_seconds, 0)
+          AS learning_object_view_time_seconds
+      FROM course_students students
+      LEFT JOIN learning_object_totals totals
+        ON totals.userid = students.userid
+        AND totals.courseid = students.courseid
+      ORDER BY students.courseid, students.userid
     ";
 
     $records = $DB->get_records_sql($sql, [
-      // 30 minutes
-      'threshold' => 1800,
-      'starttime' => $start_time
+      'coursecontextlevel' => CONTEXT_COURSE,
+      'reportstart' => $reporting_start,
+      'reportend' => $reporting_end,
+      'sessioncap' => $session_cap,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -118,8 +155,9 @@ class TimeSpentLO extends StudentBehaviourPattern
     $lo_access_time = [];
 
     foreach ($data as $student_id => $value) {
-      $students[] =  intval($student_id);
-      $lo_access_time[] = (int)ceil($value->total_seconds_spent * 0.0002777777777778);
+      $students[] =  intval($value->student_id);
+      // convert learning object view time in seconds to hours, rounded up
+      $lo_access_time[] = (int)ceil($value->learning_object_view_time_seconds / HOURSECS);
     }
 
     $chart = new \core\chart_bar();

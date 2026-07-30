@@ -34,7 +34,7 @@ final class behaviour_config
   private const RULES = [
     'gradethreshold' => ['default' => 70.0, 'min' => 0.0, 'max' => 100.0],
     'feedbackgoal' => ['default' => 60.0, 'min' => 0.0, 'max' => 100.0],
-    'engagementthreshold' => ['default' => 5.0, 'min' => 0.0, 'max' => PHP_INT_MAX],
+    'interactionthreshold' => ['default' => 5.0, 'min' => 0.0, 'max' => PHP_INT_MAX],
     'timelyfeedbackdays' => ['default' => 8, 'min' => 0, 'max' => 31],
     'sessioncap' => ['default' => 30 * MINSECS, 'min' => MINSECS, 'max' => DAYSECS],
   ];
