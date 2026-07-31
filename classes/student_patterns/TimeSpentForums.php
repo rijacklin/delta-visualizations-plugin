@@ -36,13 +36,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class TimeSpentForums extends StudentBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
@@ -53,7 +49,6 @@ class TimeSpentForums extends StudentBehaviourPattern
     // used for client-side filtering
     $reporting_end = time();
     $reporting_start = $this->get_start_time($params, $reporting_end);
-    $session_cap = BehaviourConfig::get('sessioncap');
 
     $sql = "
       -- return records of students in selected courses
@@ -134,8 +129,8 @@ class TimeSpentForums extends StudentBehaviourPattern
       'coursecontextlevel' => CONTEXT_COURSE,
       'reportstart' => $reporting_start,
       'reportend' => $reporting_end,
-      'sessioncaplimit' => $session_cap,
-      'sessioncapvalue' => $session_cap,
+      'sessioncaplimit' => $params['sessioncap'],
+      'sessioncapvalue' => $params['sessioncap'],
     ] + $courseidsparams);
 
     $this->records = $records;

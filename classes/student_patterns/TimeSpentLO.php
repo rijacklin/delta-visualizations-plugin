@@ -36,21 +36,15 @@ defined('MOODLE_INTERNAL') || die();
  */
 class TimeSpentLO extends StudentBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
       SQL_PARAMS_NAMED,
       'courseid'
     );
-
-    $session_cap = BehaviourConfig::get('sessioncap');
 
     // used for client-side filtering
     $reporting_end = time();
@@ -141,7 +135,7 @@ class TimeSpentLO extends StudentBehaviourPattern
       'coursecontextlevel' => CONTEXT_COURSE,
       'reportstart' => $reporting_start,
       'reportend' => $reporting_end,
-      'sessioncap' => $session_cap,
+      'sessioncap' => $params['sessioncap'],
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -154,7 +148,7 @@ class TimeSpentLO extends StudentBehaviourPattern
     $students = [];
     $lo_access_time = [];
 
-    foreach ($data as $student_id => $value) {
+    foreach ($data as $value) {
       $students[] =  intval($value->student_id);
       // convert learning object view time in seconds to hours, rounded up
       $lo_access_time[] = (int)ceil($value->learning_object_view_time_seconds / HOURSECS);

@@ -38,14 +38,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class PersonalizedFeedback extends TeacherBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    // early exit if no selected courses
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     // build parameterized SQL IN condition for selected courseids (required for Moodle DML API)
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
@@ -53,40 +48,6 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
       SQL_PARAMS_NAMED,
       'courseid'
     );
-
-    // $sql = "
-    //   WITH target_students AS (
-    //     select
-    //         ag.id,
-    //         ag.userid AS studentid,
-    //         ag.assignment,
-    //         ag.grade,
-    //         ag.timemodified AS gradeddate
-    //     FROM {assign_grades} ag
-    //     JOIN {assign} assign
-    //       ON assign.id = ag.assignment
-    //     WHERE ag.grade < :gradethreshold
-    //       AND assign.course $courseidssql
-    //     ORDER BY ag.userid ASC
-    //   ),
-    //   targeted_feedback AS (
-    //     select 
-    //       afcom.id as feedback_id,
-    //       ts.studentid as student_id,
-    //       afcom.commenttext as feedback_text
-    //     FROM target_students ts
-    //     join {assignfeedback_comments} afcom
-    //       on afcom.assignment = ts.assignment AND afcom.grade = ts.id
-    //   )
-    //   select
-    //     feedback_id,
-    //     student_id,
-    //     feedback_text
-    //   FROM targeted_feedback
-    //   ORDER BY
-    //     feedback_id ASC,
-    //     student_id ASC;
-    // ";
 
     $sql = "
       WITH course_students AS (
@@ -139,9 +100,6 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
           students.course_id,
           submission.submission_id,
           submission.assignment_id,
-          submission.attempt_number,
-          grade.grade AS raw_grade,
-          feedback.id AS feedback_id,
           feedback.commenttext AS feedback_text
         FROM course_students students
         LEFT JOIN latest_submissions submission
@@ -165,40 +123,20 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
     $records = $DB->get_records_sql($sql, $courseidsparams);
     $this->records = $records;
 
-    // grab all students from courses to ensure NotRequired being properly applied
-    $studentsql = "
-      SELECT
-        ra.id AS role_assignment_id,
-        ra.userid AS student_id,
-        c.id AS course_id
-      FROM {course} c
-      JOIN {context} ctx
-        ON ctx.contextlevel = 50
-        AND ctx.instanceid = c.id
-      JOIN {role_assignments} ra
-        ON ra.contextid = ctx.id
-      JOIN {role} r
-        ON r.id = ra.roleid
-      WHERE r.shortname = 'student'
-        AND c.id $courseidssql
-    ";
-    $students = $DB->get_records_sql($studentsql, $courseidsparams);
-
     // store the configured feedback goal as percentage
     $feedback_goal = $params['feedbackgoal'] / 100;
-    $messages = $records;
     $data = new stdClass();
 
     // all selected students begin as NotRequired
-    foreach ($students as $student) {
-      $message_key = $student->student_id . ':' . $student->course_id;
+    foreach ($records as $message) {
+      $message_key = $message->student_id . ':' . $message->course_id;
       $data->{$message_key} = ActivityBehaviour::NotRequired;
     }
 
     // group feedback responses by course and assignment for comparison
     $assignment_messages = [];
 
-    foreach ($messages as $message) {
+    foreach ($records as $message) {
       // skip students without an assignment submission
       if ($message->submission_id === null) {
         continue;
@@ -209,7 +147,7 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
       $assignment_messages[$assignment_key][] = $message;
     }
 
-    foreach ($messages as $message) {
+    foreach ($records as $message) {
       // handle potential bad data by skipping messages not tied to assign submission
       if ($message->submission_id === null) {
         continue;
@@ -217,10 +155,8 @@ class PersonalizedFeedback extends TeacherBehaviourPattern
 
       $message_key = $message->student_id . ':' . $message->course_id;
       $assignment_key = $message->course_id . ':' . $message->assignment_id;
-      $student_key = (string)$message->student_id;
       $feedback_to_score_words = explode(' ', $message->feedback_text);
       $feedback_length = count($feedback_to_score_words);
-      $feedback_to_compare_set = [];
       $max_similar_count = 0;
 
       // compare response with every other response for assignment

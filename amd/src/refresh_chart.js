@@ -97,8 +97,6 @@ export const init = (rootSelector) => {
   // grab plugin block's root DOM element
   const root = document.querySelector(rootSelector);
 
-  root.dataset.chartRefreshInitialized = 'true';
-
   // attach a submit event listener to the filter's apply button
   root.addEventListener('submit', (event) => {
     const form = event.target.closest('[data-region="behaviour-filter"]');

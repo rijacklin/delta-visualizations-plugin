@@ -41,14 +41,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class CoursePerformanceFeedback extends TeacherBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    // early exit if no selected courses
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     // build parameterized SQL IN condition for selected courseids (required for Moodle DML API)
     [$studentcourseidssql, $studentcourseidsparams] = $DB->get_in_or_equal(
@@ -98,13 +93,9 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
       )
       SELECT
         COALESCE(feedback.id, 0 - submission.submission_id) AS record_id,
-        submission.submission_id,
         submission.student_id,
         submission.course_id,
-        submission.assignment_id,
-        submission.attempt_number,
         grade.grade AS raw_grade,
-        feedback.id AS feedback_id,
         feedback.commenttext AS feedback_text
       FROM latest_submissions submission
       LEFT JOIN {assign_grades} grade
@@ -206,8 +197,6 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
       'keep practicing',
     ];
 
-    $messages = $records;
-
     $data = new stdClass();
 
     // all selected students begin as Not Required, including those without a submission
@@ -216,7 +205,7 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
       $data->{$messagekey} = ActivityBehaviour::NotRequired;
     }
 
-    foreach ($messages as $message) {
+    foreach ($records as $message) {
       $messagekey = $message->student_id . ':' . $message->course_id;
 
       // skip feedback for assignments above low grade threshold

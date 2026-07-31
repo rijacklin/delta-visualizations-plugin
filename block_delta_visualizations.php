@@ -63,7 +63,7 @@ class block_delta_visualizations extends block_base
     );
 
     $this->content->text = $OUTPUT->render_from_template(
-      'block_delta_visualizations/instructor_dashboard',
+      'block_delta_visualizations/teacher_dashboard',
       $renderable->export_for_template($OUTPUT)
     );
 

@@ -35,13 +35,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class StudentActiveTime extends StudentBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
@@ -52,9 +48,6 @@ class StudentActiveTime extends StudentBehaviourPattern
     // used for client-side filtering
     $reporting_end = time();
     $reporting_start = $this->get_start_time($params, $reporting_end);
-
-    // grab site-defined session cap
-    $session_cap = BehaviourConfig::get('sessioncap');
 
     $sql = "
       -- return records of students in selected courses
@@ -78,12 +71,10 @@ class StudentActiveTime extends StudentBehaviourPattern
       -- return all student events from moodle logs
       ordered_course_events AS (
         SELECT
-          log.id AS eventid,
           log.userid,
           log.courseid,
           log.eventname,
           log.component,
-          log.action,
           log.timecreated,
           -- grab subsequent logs to estimate duration
           LEAD(log.timecreated) OVER (
@@ -134,23 +125,23 @@ class StudentActiveTime extends StudentBehaviourPattern
       SELECT
         -- generate unique column id (required for Moodle sql)
         ROW_NUMBER() OVER (ORDER BY students.courseid, students.userid) AS recordid,
-        students.userid,
-        students.courseid,
+        students.userid as student_id,
+        students.courseid as course_id,
         COALESCE(totals.active_time_seconds, 0) AS active_time_seconds
       FROM course_students students
       -- append students without logins to query results
       LEFT JOIN active_time_totals totals
         ON totals.userid = students.userid
         AND totals.courseid = students.courseid
-      ORDER BY students.courseid, students.userid
+      ORDER BY student_id, course_id
     ";
 
     $records = $DB->get_records_sql($sql, [
       'coursecontextlevel' => CONTEXT_COURSE,
       'reportstart' => $reporting_start,
       'reportend' => $reporting_end,
-      'sessioncaplimit' => $session_cap,
-      'sessioncapvalue' => $session_cap,
+      'sessioncaplimit' => $params['sessioncap'],
+      'sessioncapvalue' => $params['sessioncap'],
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -163,8 +154,8 @@ class StudentActiveTime extends StudentBehaviourPattern
     $students = [];
     $active_time = [];
 
-    foreach ($data as $student_id => $value) {
-      $students[] =  intval($student_id);
+    foreach ($data as $value) {
+      $students[] =  intval($value->student_id);
       // convert active time in seconds to hours, rounded up
       $active_time[] = (int)ceil($value->active_time_seconds / HOURSECS);
     }

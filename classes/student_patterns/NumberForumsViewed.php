@@ -34,13 +34,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class NumberForumsViewed extends StudentBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
@@ -48,17 +44,12 @@ class NumberForumsViewed extends StudentBehaviourPattern
       'courseid'
     );
 
-    $reporting_end = time();
-    $reporting_start = $this->get_start_time($params, $reporting_end);
-
     $sql = "
       -- return records of students in selected courses
       WITH course_students AS (
         SELECT DISTINCT
           ra.userid,
-          c.id AS courseid,
-          c.startdate AS course_start,
-          c.enddate AS course_end
+          c.id AS courseid
         FROM {course} c
         JOIN {context} ctx
           ON ctx.contextlevel = :coursecontextlevel
@@ -82,19 +73,12 @@ class NumberForumsViewed extends StudentBehaviourPattern
         ON log.userid = students.userid
         AND log.courseid = students.courseid
         AND log.eventname = '\\mod_forum\\event\\discussion_viewed'
-        -- handle client-side filtering of reporting periods
-        AND log.timecreated >= students.course_start
-        AND log.timecreated >= :reportstart
-        AND log.timecreated < students.course_end
-        AND log.timecreated < :reportend
       GROUP BY students.userid, students.courseid
       ORDER BY students.courseid, students.userid
     ";
 
     $records = $DB->get_records_sql($sql, [
       'coursecontextlevel' => CONTEXT_COURSE,
-      'reportstart' => $reporting_start,
-      'reportend' => $reporting_end,
     ] + $courseidsparams);
 
     $this->records = $records;
@@ -107,7 +91,7 @@ class NumberForumsViewed extends StudentBehaviourPattern
     $students = [];
     $count = [];
 
-    foreach ($data as $student_id => $value) {
+    foreach ($data as $value) {
       $students[] = intval($value->student_id);
       $count[] = intval($value->forums_viewed_count);
     }

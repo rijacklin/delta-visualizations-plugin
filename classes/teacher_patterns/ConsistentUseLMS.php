@@ -17,7 +17,7 @@
 /**
  * Models teacher behaviour: Consistent Use of LMS
  *
- * Behaviour Pattern Description: An instructor is actively engaged in their
+ * Behaviour Pattern Description: A teacher is actively engaged in their
  * course when they are actively participating with the online courses they
  * teach. Teachers who consistently log in and contribute to their courses
  * exhibit this behaviour.
@@ -29,7 +29,6 @@
 
 namespace block_delta_visualizations\teacher_patterns;
 
-use block_delta_visualizations\local\TimeRange;
 use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
@@ -39,9 +38,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class ConsistentUseLMS extends TeacherBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
-    global $DB, $USER;
+    global $DB;
 
     // use current timestamp in query to account for courses that have no end date (i.e., active courses)
     $query_time = time();
@@ -86,14 +85,6 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
         teacher.course_id,
         teacher.course_start,
         teacher.course_end,
-        log.id AS log_event_id,
-        log.eventname AS event_name,
-        log.component,
-        log.action,
-        log.target,
-        log.crud,
-        log.contextinstanceid AS context_instance_id,
-        log.objectid AS object_id,
         log.timecreated AS event_time
       FROM course_teachers teacher
       LEFT JOIN {logstore_standard_log} log
@@ -113,8 +104,6 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
       'querytime' => $query_time,
     ] + $courseidsparams);
     $this->records = $records;
-
-    $data = new stdClass();
 
     $teacher_course_logs = [];
 

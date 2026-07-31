@@ -42,14 +42,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class TimelyFeedback extends TeacherBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    // early exit if no selected courses
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     // build parameterized SQL IN condition for selected courseids (required for Moodle DML API)
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
@@ -109,13 +104,8 @@ class TimelyFeedback extends TeacherBehaviourPattern
         students.student_id,
         students.course_id,
         submission.submission_id,
-        submission.assignment_id,
-        submission.attempt_number,
         submission.submission_date,
-        grade.grade AS raw_grade,
-        grade.timemodified AS graded_date,
-        feedback.id AS feedback_id,
-        feedback.commenttext AS feedback_text
+        grade.timemodified AS graded_date
       FROM course_students students
       LEFT JOIN latest_submissions submission
         ON submission.student_id = students.student_id
@@ -141,30 +131,11 @@ class TimelyFeedback extends TeacherBehaviourPattern
     $records = $DB->get_records_sql($sql, $courseidsparams);
     $this->records = $records;
 
-    // grab all students from courses to ensure NotRequired being properly applied
-    $studentsql = "
-      SELECT
-        ra.id AS role_assignment_id,
-        ra.userid AS student_id,
-        c.id AS course_id
-      FROM {course} c
-      JOIN {context} ctx
-        ON ctx.contextlevel = 50
-        AND ctx.instanceid = c.id
-      JOIN {role_assignments} ra
-        ON ra.contextid = ctx.id
-      JOIN {role} r
-        ON r.id = ra.roleid
-      WHERE r.shortname = 'student'
-        AND c.id $courseidssql
-    ";
-    $students = $DB->get_records_sql($studentsql, $courseidsparams);
-
     $data = new stdClass();
 
     // all selected students begin as NotRequired
-    foreach ($students as $student) {
-      $message_key = $student->student_id . ':' . $student->course_id;
+    foreach ($records as $feedback) {
+      $message_key = $feedback->student_id . ':' . $feedback->course_id;
       $data->{$message_key} = ActivityBehaviour::NotRequired;
     }
 

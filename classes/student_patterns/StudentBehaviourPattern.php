@@ -29,15 +29,6 @@ use block_delta_visualizations\local\TimeRange;
 
 defined('MOODLE_INTERNAL') || die();
 
-// #TOOO: Investigate what behaviour patterns don't require a course
-trait NotRelatedToCourse
-{
-  protected function requires_course(): bool
-  {
-    return false;
-  }
-}
-
 /**
  * Creates a renderer for the block_delta_visualizations
  *
@@ -49,12 +40,6 @@ abstract class StudentBehaviourPattern implements ChartBehaviour
   abstract protected function query_behaviour_data(array $params);
 
   abstract protected function create_bar_chart(): \core\chart_bar;
-
-  // #TOOO: Investigate what behaviour patterns don't require a course
-  protected function requires_course(): bool
-  {
-    return true;
-  }
 
   /**
    * Calculate the inclusive reporting-window start from a validated time range.
@@ -75,31 +60,26 @@ abstract class StudentBehaviourPattern implements ChartBehaviour
   }
 
   /**
-   * Query the behaviour data and generate the requested chart type.
+   * Query the behaviour data and generate its bar chart.
    *
-   * @param array $params Behaviour and chart parameters.
+   * @param array $params Behaviour and query parameters.
    * @return \core\chart_base|null
    */
   public function generate_chart(array $params): ?\core\chart_base
   {
     $this->records = [];
 
-    if ($this->requires_course() && empty($params['courseids'])) {
+    if (empty($params['courseids'])) {
       return null;
     }
 
     $this->query_behaviour_data($params);
 
-    switch ($params['chart_type'] ?? '\core\chart_bar') {
-      case '\core\chart_bar':
-        return $this->create_bar_chart();
-
-      case '\core\chart_line':
-        return $this->create_line_chart();
-
-      default:
-        throw new \invalid_parameter_exception('Unsupported chart type');
+    if (($params['chart_type'] ?? '\core\chart_bar') !== '\core\chart_bar') {
+      throw new \invalid_parameter_exception('Unsupported chart type');
     }
+
+    return $this->create_bar_chart();
   }
 
   /**

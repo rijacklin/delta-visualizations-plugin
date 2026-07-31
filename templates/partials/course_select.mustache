@@ -49,11 +49,11 @@
 <form method="get">
   <div class="d-flex align-items-center gap-4">
     <label for="course-select-{{uniqid}}" class="mr-4 fs-4 text-nowrap mb-0">
-      Select courses:
+      {{#str}} courseselecttitle, block_delta_visualizations {{/str}}
     </label>
 
     <div class="flex-grow-1">
-      <select id="course-select-{{uniqid}}" class="form-control" name="courseids[]" multiple="multiple" data-enhance="moodle-autocomplete" data-placeholder="Select One or More Courses">
+      <select id="course-select-{{uniqid}}" class="form-control" name="courseids[]" multiple="multiple" data-placeholder="Select One or More Courses">
         {{#courses}}
           <option value="{{id}}" {{#selected}}selected{{/selected}}>
             {{name}}

@@ -34,13 +34,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class TimeSpentAssignments extends StudentBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
@@ -162,7 +158,7 @@ class TimeSpentAssignments extends StudentBehaviourPattern
     $students = [];
     $assign_view_time = [];
 
-    foreach ($data as $student_id => $value) {
+    foreach ($data as $value) {
       $students[] = intval($value->student_id);
       // convert active time in seconds to hours, rounded up
       $assign_view_time[] = (int)ceil($value->assignment_time_seconds / HOURSECS);

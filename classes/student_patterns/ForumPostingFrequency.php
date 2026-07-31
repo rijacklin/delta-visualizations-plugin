@@ -33,13 +33,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class ForumPostingFrequency extends StudentBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
       $params['courseids'],
@@ -47,18 +43,12 @@ class ForumPostingFrequency extends StudentBehaviourPattern
       'courseid'
     );
 
-    // used for client-side filtering
-    $reporting_end = time();
-    $reporting_start = $this->get_start_time($params, $reporting_end);
-
     $sql = "
       -- return records of students in selected courses
       WITH course_students AS (
         SELECT DISTINCT
           ra.userid,
-          c.id AS courseid,
-          c.startdate AS course_start,
-          c.enddate AS course_end
+          c.id AS courseid
         FROM {course} c
         JOIN {context} ctx
           ON ctx.contextlevel = :coursecontextlevel
@@ -82,11 +72,6 @@ class ForumPostingFrequency extends StudentBehaviourPattern
         JOIN course_students students
           ON students.userid = fp.userid
           AND students.courseid = fd.course
-        -- handle client-side filtering of reporting periods
-        WHERE fp.created >= students.course_start
-          AND fp.created >= :reportstart
-          AND fp.created < students.course_end
-          AND fp.created < :reportend
         GROUP BY fp.userid, fd.course
       )
       SELECT
@@ -105,8 +90,6 @@ class ForumPostingFrequency extends StudentBehaviourPattern
 
     $records = $DB->get_records_sql($sql, [
       'coursecontextlevel' => CONTEXT_COURSE,
-      'reportstart' => $reporting_start,
-      'reportend' => $reporting_end,
     ] + $courseidsparams);
 
     $this->records = $records;

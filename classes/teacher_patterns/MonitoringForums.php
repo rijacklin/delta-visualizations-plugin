@@ -42,14 +42,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class MonitoringForums extends TeacherBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
-    global $DB, $USER;
-
-    // early exit if no selected courses
-    if (empty($params['courseids'])) {
-      return [];
-    }
+    global $DB;
 
     // build parameterized SQL IN condition for selected courseids (required for Moodle DML API)
     [$courseidssql, $courseidsparams] = $DB->get_in_or_equal(
@@ -57,30 +52,6 @@ class MonitoringForums extends TeacherBehaviourPattern
       SQL_PARAMS_NAMED,
       'courseid'
     );
-
-    // $sql = "
-    //   WITH teacher_response AS (
-    //     select
-    //       reply.id as post_id,
-    //       fd.id AS discussion_id
-    //     FROM {forum_discussions} fd
-    //     JOIN {forum_posts} studentpost
-    //       ON studentpost.discussion = fd.id
-    //     JOIN {forum_posts} reply
-    //       ON reply.parent = studentpost.id
-    //     WHERE fd.course $courseidssql
-    //       AND reply.userid = :userid
-    //     ORDER BY fd.id ASC
-    //   )
-    //   SELECT
-    //     post_id,
-    //     fp.message
-    //   FROM teacher_response tr
-    //   JOIN {forum_posts} fp
-    //     ON tr.discussion_id = fp.discussion
-    //   WHERE fp.parent = tr.post_id
-    //   ORDER BY post_id ASC
-    // ";
 
     $sql = "
       WITH course_participants AS (
@@ -120,18 +91,10 @@ class MonitoringForums extends TeacherBehaviourPattern
       SELECT
         post.id AS post_id,
         discussion.course AS course_id,
-        participant.course_start,
-        participant.course_end,
-        discussion.forum AS forum_id,
-        discussion.id AS discussion_id,
-        discussion.firstpost AS discussion_first_post_id,
         post.parent AS parent_post_id,
         post.userid AS author_id,
         participant.author_is_student,
         participant.author_is_teacher,
-        post.created AS post_created_time,
-        post.modified AS post_modified_time,
-        post.subject AS post_subject,
         post.message AS post_message
       FROM {forum_posts} post
       JOIN {forum_discussions} discussion
@@ -151,8 +114,6 @@ class MonitoringForums extends TeacherBehaviourPattern
     // access records from query using moodle DML and store on class instance
     $records = $DB->get_records_sql($sql, $courseidsparams);
     $this->records = $records;
-
-    $data = new stdClass();
 
     // grab all students from courses to ensure NotRequired being properly applied
     $studentsql = "
@@ -190,8 +151,6 @@ class MonitoringForums extends TeacherBehaviourPattern
       'all good now',
       'all set'
     ];
-
-    $posts = $records;
 
     $data = new stdClass();
 

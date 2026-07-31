@@ -121,6 +121,10 @@ abstract class TeacherBehaviourPattern implements ChartBehaviour
     $this->records = [];
     $this->chart = null;
 
+    if (empty($params['courseids'])) {
+      return null;
+    }
+
     $behaviour_data = $this->query_behaviour_data($params);
     $this->create_pie_chart($behaviour_data);
 

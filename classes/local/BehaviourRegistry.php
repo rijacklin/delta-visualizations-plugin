@@ -53,10 +53,10 @@ final class BehaviourRegistry
   /**
    * Returns all behaviour definitions
    *
-   * @param BehaviourGroup|null $group Optional teacher or student group filter
+   * @param BehaviourGroup $group Teacher or student group filter
    * @return array
    */
-  public static function all(?BehaviourGroup $group = null): array
+  public static function all(BehaviourGroup $group): array
   {
     $definitions = self::definitions();
 
@@ -198,16 +198,15 @@ final class BehaviourRegistry
         'studentsuccess' => false,
         'defaults' => [
           'interactionthreshold' => $interactionthreshold,
-          'time_range' => TimeRange::WEEKLY->value,
         ],
-        'control' => self::time_range_control(),
+        'control' => null,
       ],
       'login_frequency' => [
         'class' => LoginFrequency::class,
         'name' => 'Login frequency',
         'group' => BehaviourGroup::STUDENT,
         'studentsuccess' => false,
-        'defaults' => ['chart_type' => '\\core\\chart_bar'],
+        'defaults' => [],
         'control' => null,
       ],
       'student_active_time' => [
@@ -239,16 +238,16 @@ final class BehaviourRegistry
         'name' => 'Learning object access frequency',
         'group' => BehaviourGroup::STUDENT,
         'studentsuccess' => false,
-        'defaults' => self::student_time_range_defaults(),
-        'control' => self::time_range_control(),
+        'defaults' => [],
+        'control' => null,
       ],
       'forum_posting_frequency' => [
         'class' => ForumPostingFrequency::class,
         'name' => 'Forum posting frequency',
         'group' => BehaviourGroup::STUDENT,
         'studentsuccess' => true,
-        'defaults' => self::student_time_range_defaults(),
-        'control' => self::time_range_control(),
+        'defaults' => [],
+        'control' => null,
       ],
       'time_spent_lo' => [
         'class' => TimeSpentLO::class,
@@ -263,8 +262,8 @@ final class BehaviourRegistry
         'name' => 'Number of forums viewed',
         'group' => BehaviourGroup::STUDENT,
         'studentsuccess' => true,
-        'defaults' => self::student_time_range_defaults(),
-        'control' => self::time_range_control(),
+        'defaults' => [],
+        'control' => null,
       ],
       'forum_posting_consistency' => [
         'class' => ForumPostingConsistency::class,
@@ -288,7 +287,6 @@ final class BehaviourRegistry
   private static function student_time_range_defaults(bool $usesessioncap = false): array
   {
     $defaults = [
-      'chart_type' => '\\core\\chart_bar',
       'time_range' => TimeRange::WEEKLY->value,
     ];
 
@@ -308,7 +306,6 @@ final class BehaviourRegistry
   {
     return [
       'name' => 'time_range',
-      'type' => 'select',
       'label' => 'filtertimerange',
       'options' => [
         TimeRange::HOURLY->value,

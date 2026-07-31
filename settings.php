@@ -50,7 +50,7 @@ if ($ADMIN->fulltree) {
     PARAM_FLOAT
   ));
 
-  // sets a minimum amount of engagement (i.e., number of interactions) teachers should have in their courses each week.
+  // sets a minimum number of times teacher should interact with their courses each week.
   $settings->add(new admin_setting_configtext(
     'block_delta_visualizations/interactionthreshold',
     get_string('settingsinteractionthreshold', 'block_delta_visualizations'),
@@ -68,7 +68,7 @@ if ($ADMIN->fulltree) {
     PARAM_INT
   ));
 
-  // sets a limit on the amount of time (in seconds) between consecutive events. This is needed for proper event duration tracking as many behaviours in Moodle do not have an explicit end event to record in the database (e.g., exiting the Moodle site without logging out will cause issus with proper duration tracking)
+  // sets a limit on the amount of time (in seconds) between consecutive events.
   $sessioncapsetting = new admin_setting_configduration(
     'block_delta_visualizations/sessioncap',
     get_string('settingssessioncap', 'block_delta_visualizations'),
@@ -81,7 +81,5 @@ if ($ADMIN->fulltree) {
 
   // the maximum cap on duration between two events is 1 day
   $sessioncapsetting->set_max_duration(DAYSECS);
-
-  // add to settings page after setting min/max values
   $settings->add($sessioncapsetting);
 }

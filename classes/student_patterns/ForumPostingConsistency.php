@@ -35,13 +35,9 @@ defined('MOODLE_INTERNAL') || die();
  */
 class ForumPostingConsistency extends StudentBehaviourPattern
 {
-  public function query_behaviour_data(array $params)
+  protected function query_behaviour_data(array $params)
   {
     global $DB;
-
-    if (empty($params['courseids'])) {
-      return [];
-    }
 
     $cutoff_window_seconds = (int)$params['final_window_weeks'] * WEEKSECS;
 
@@ -88,8 +84,7 @@ class ForumPostingConsistency extends StudentBehaviourPattern
               WHEN fp.created >= students.course_cutoff THEN 1
               ELSE 0
             END
-          ) AS forum_posts_after,
-          COUNT(fp.id) AS total_posts
+          ) AS forum_posts_after
         FROM {forum_posts} fp
         JOIN {forum_discussions} fd
           ON fd.id = fp.discussion
@@ -106,13 +101,7 @@ class ForumPostingConsistency extends StudentBehaviourPattern
         students.userid AS student_id,
         students.courseid AS course_id,
         COALESCE(counts.forum_posts_before, 0) AS forum_posts_before,
-        COALESCE(counts.forum_posts_after, 0) AS forum_posts_after,
-        -- return proportion of posts made during the final two weeks
-        CASE
-          WHEN COALESCE(counts.total_posts, 0) = 0 THEN 0
-          ELSE
-            1.0 * counts.forum_posts_after / counts.total_posts
-        END AS forum_posting_end_loading_score
+        COALESCE(counts.forum_posts_after, 0) AS forum_posts_after
       FROM course_students students
       LEFT JOIN post_counts counts
         ON counts.userid = students.userid
@@ -127,44 +116,6 @@ class ForumPostingConsistency extends StudentBehaviourPattern
     ] + $courseidsparams);
 
     $this->records = $records;
-  }
-
-  public function create_line_chart(): \core\chart_line
-  {
-    $data = $this->records;
-
-    $students = [];
-    $posts_before = [];
-    $posts_after = [];
-
-    foreach ($data as $value) {
-      $students[] = intval($value->student_id);
-      $posts_before[] = intval($value->posts_before);
-      $posts_after[] = intval($value->posts_after);
-    }
-
-    $chart = new \core\chart_line();
-
-    // x-axis
-    $chart->set_labels($students);
-
-    // y-axis
-    $before_series = new \core\chart_series('Posts Before Final Window', $posts_before);
-    $chart->add_series($before_series);
-
-    $after_series = new \core\chart_series('Posts During Final Window', $posts_after);
-    $chart->add_series($after_series);
-
-    $xaxis = $chart->get_xaxis(0, true);
-    $xaxis->set_label("Student ID");
-
-    $yaxis = $chart->get_yaxis(0, true);
-    $yaxis->set_label("Posts Before/During Final Window");
-    $yaxis->set_min(0);
-    $yaxis->set_max(100);
-    $yaxis->set_stepsize(10);
-
-    return $chart;
   }
 
   public function create_bar_chart(): \core\chart_bar

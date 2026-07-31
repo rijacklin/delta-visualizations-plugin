@@ -33,7 +33,7 @@ use stdClass;
 use templatable;
 
 /**
- * Provides the dashboard data consumed by the instructor dashboard template.
+ * Provides the dashboard data consumed by the teacher dashboard template.
  */
 class main implements templatable
 {
@@ -41,7 +41,7 @@ class main implements templatable
   private array $courseids;
 
   /**
-   * Constructs initial state for the instructor dashboard template.
+   * Constructs initial state for the teacher dashboard template.
    *
    * @param array $courseids Course IDs selected in the dashboard filter.
    * @param \context $context Block context used by chart Fragment requests.
@@ -53,7 +53,7 @@ class main implements templatable
   }
 
   /**
-   * Returns data for the client-side instructor dashboard template.
+   * Returns data for the client-side teacher dashboard template.
    *
    * @param renderer_base $output Renderer used to produce chart HTML.
    * @return stdClass Dashboard template data.
@@ -68,8 +68,8 @@ class main implements templatable
     $data->hasSelectedCourses = !empty($selected_courseids);
 
     $data->tabs = [
-      ['name' => 'Instructor Behaviour'],
-      ['name' => 'Instructor View of Student Behaviour'],
+      ['name' => 'Teacher Behaviour'],
+      ['name' => 'Teacher View of Student Behaviour'],
     ];
 
     $data->teacher_behaviours = [];
