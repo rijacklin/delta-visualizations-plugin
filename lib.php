@@ -55,14 +55,14 @@ function block_delta_visualizations_output_fragment_refresh_chart(array $args): 
   // sanitize the client-side values, then pass to registry for validation
   $behaviourid = clean_param($args['behaviourid'] ?? '', PARAM_RAW_TRIMMED);
   $filtervalue = clean_param($args['filtervalue'] ?? '', PARAM_RAW_TRIMMED);
-  $params = \block_delta_visualizations\local\behaviour_registry::filter_param(
+  $params = \block_delta_visualizations\local\BehaviourRegistry::filter_param(
     $behaviourid,
     $filtervalue
   );
 
   // restore the selected course ids before constructing new behaviour and chart
   $params['courseids'] = $courseids;
-  $behaviour = \block_delta_visualizations\local\behaviour_registry::create($behaviourid);
+  $behaviour = \block_delta_visualizations\local\BehaviourRegistry::create($behaviourid);
   $chart = $behaviour->generate_chart($params);
 
   // if no records, need to send constructed HTML elemenet to avoid runtime error

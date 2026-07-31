@@ -24,7 +24,7 @@
 
 namespace block_delta_visualizations\teacher_patterns;
 
-use block_delta_visualizations\local\chart_behaviour;
+use block_delta_visualizations\local\ChartBehaviour;
 use stdClass;
 
 defined('MOODLE_INTERNAL') || die();
@@ -49,9 +49,9 @@ enum ActivityBehaviour
 
 /**
  * Base class for all teacher behaviour patterns, which implement the
- * chart_behaviour interface.
+ * ChartBehaviour interface.
  */
-abstract class TeacherBehaviourPattern implements chart_behaviour
+abstract class TeacherBehaviourPattern implements ChartBehaviour
 {
   protected $records = [];
   protected $chart;

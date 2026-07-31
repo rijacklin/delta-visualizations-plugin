@@ -48,7 +48,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Provides a factory for constructing behaviour pattern subclasses
  */
-final class behaviour_registry
+final class BehaviourRegistry
 {
   /**
    * Returns all behaviour definitions
@@ -82,9 +82,9 @@ final class behaviour_registry
    * Instantiate behaviour from registry
    *
    * @param string $id Behaviour identifier
-   * @return chart_behaviour
+   * @return ChartBehaviour
    */
-  public static function create(string $id): chart_behaviour
+  public static function create(string $id): ChartBehaviour
   {
     $definition = self::get($id);
     $classname = $definition['class'];
@@ -153,10 +153,10 @@ final class behaviour_registry
    */
   private static function definitions(): array
   {
-    $gradethreshold = behaviour_config::get('gradethreshold');
-    $feedbackgoal = behaviour_config::get('feedbackgoal');
-    $interactionthreshold = behaviour_config::get('interactionthreshold');
-    $timelyfeedbackdays = behaviour_config::get('timelyfeedbackdays');
+    $gradethreshold = BehaviourConfig::get('gradethreshold');
+    $feedbackgoal = BehaviourConfig::get('feedbackgoal');
+    $interactionthreshold = BehaviourConfig::get('interactionthreshold');
+    $timelyfeedbackdays = BehaviourConfig::get('timelyfeedbackdays');
 
     return [
       'course_performance_feedback' => [
@@ -293,7 +293,7 @@ final class behaviour_registry
     ];
 
     if ($usesessioncap) {
-      $defaults['sessioncap'] = behaviour_config::get('sessioncap');
+      $defaults['sessioncap'] = BehaviourConfig::get('sessioncap');
     }
 
     return $defaults;

@@ -27,7 +27,7 @@
 
 namespace block_delta_visualizations\student_patterns;
 
-use block_delta_visualizations\local\behaviour_config;
+use block_delta_visualizations\local\BehaviourConfig;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -53,7 +53,7 @@ class TimeSpentForums extends StudentBehaviourPattern
     // used for client-side filtering
     $reporting_end = time();
     $reporting_start = $this->get_start_time($params, $reporting_end);
-    $session_cap = behaviour_config::get('sessioncap');
+    $session_cap = BehaviourConfig::get('sessioncap');
 
     $sql = "
       -- return records of students in selected courses

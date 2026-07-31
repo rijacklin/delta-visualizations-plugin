@@ -27,7 +27,7 @@
 
 namespace block_delta_visualizations\student_patterns;
 
-use block_delta_visualizations\local\behaviour_config;
+use block_delta_visualizations\local\BehaviourConfig;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -50,7 +50,7 @@ class TimeSpentLO extends StudentBehaviourPattern
       'courseid'
     );
 
-    $session_cap = behaviour_config::get('sessioncap');
+    $session_cap = BehaviourConfig::get('sessioncap');
 
     // used for client-side filtering
     $reporting_end = time();

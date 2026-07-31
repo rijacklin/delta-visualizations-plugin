@@ -29,7 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Defines a contract for behaviour pattern subclasses that expose their data records and generate visualization charts.
  */
-interface chart_behaviour
+interface ChartBehaviour
 {
   /**
    * Generate a chart for a behaviour pattern based on parameters

@@ -24,7 +24,7 @@
 
 namespace block_delta_visualizations\student_patterns;
 
-use block_delta_visualizations\local\chart_behaviour;
+use block_delta_visualizations\local\ChartBehaviour;
 use block_delta_visualizations\local\TimeRange;
 
 defined('MOODLE_INTERNAL') || die();
@@ -42,7 +42,7 @@ trait NotRelatedToCourse
  * Creates a renderer for the block_delta_visualizations
  *
  */
-abstract class StudentBehaviourPattern implements chart_behaviour
+abstract class StudentBehaviourPattern implements ChartBehaviour
 {
   protected $records = [];
 

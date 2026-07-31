@@ -26,7 +26,7 @@ namespace block_delta_visualizations\output;
 
 defined('MOODLE_INTERNAL') || die();
 
-use block_delta_visualizations\local\behaviour_registry;
+use block_delta_visualizations\local\BehaviourRegistry;
 use block_delta_visualizations\local\BehaviourGroup;
 use renderer_base;
 use stdClass;
@@ -107,11 +107,11 @@ class main implements templatable
     $courseidsjson = json_encode($courseids, JSON_THROW_ON_ERROR);
 
     // generate each behaviour pattern and chart to be renderered
-    foreach (behaviour_registry::all($group) as $id => $definition) {
+    foreach (BehaviourRegistry::all($group) as $id => $definition) {
       $params = $definition['defaults'];
       $params['courseids'] = $courseids;
 
-      $behaviour = behaviour_registry::create($id);
+      $behaviour = BehaviourRegistry::create($id);
       $chart = $behaviour->generate_chart($params);
 
       $item = [
@@ -121,7 +121,7 @@ class main implements templatable
       ];
 
       // builds filter template
-      $control = behaviour_registry::control_for_template($definition);
+      $control = BehaviourRegistry::control_for_template($definition);
       if ($control !== null) {
         $item['behaviour-id'] = $id;
         $item['control'] = $control;

@@ -37,7 +37,7 @@ if ($ADMIN->fulltree) {
     'block_delta_visualizations/gradethreshold',
     get_string('settingsgradethreshold', 'block_delta_visualizations'),
     get_string('settingsgradethreshold_desc', 'block_delta_visualizations'),
-    \block_delta_visualizations\local\behaviour_config::default('gradethreshold'),
+    \block_delta_visualizations\local\BehaviourConfig::default('gradethreshold'),
     PARAM_FLOAT
   ));
 
@@ -46,7 +46,7 @@ if ($ADMIN->fulltree) {
     'block_delta_visualizations/feedbackgoal',
     get_string('settingsfeedbackgoal', 'block_delta_visualizations'),
     get_string('settingsfeedbackgoal_desc', 'block_delta_visualizations'),
-    \block_delta_visualizations\local\behaviour_config::default('feedbackgoal'),
+    \block_delta_visualizations\local\BehaviourConfig::default('feedbackgoal'),
     PARAM_FLOAT
   ));
 
@@ -55,7 +55,7 @@ if ($ADMIN->fulltree) {
     'block_delta_visualizations/interactionthreshold',
     get_string('settingsinteractionthreshold', 'block_delta_visualizations'),
     get_string('settingsinteractionthreshold_desc', 'block_delta_visualizations'),
-    \block_delta_visualizations\local\behaviour_config::default('interactionthreshold'),
+    \block_delta_visualizations\local\BehaviourConfig::default('interactionthreshold'),
     PARAM_FLOAT
   ));
 
@@ -64,7 +64,7 @@ if ($ADMIN->fulltree) {
     'block_delta_visualizations/timelyfeedbackdays',
     get_string('settingstimelyfeedbackdays', 'block_delta_visualizations'),
     get_string('settingstimelyfeedbackdays_desc', 'block_delta_visualizations'),
-    \block_delta_visualizations\local\behaviour_config::default('timelyfeedbackdays'),
+    \block_delta_visualizations\local\BehaviourConfig::default('timelyfeedbackdays'),
     PARAM_INT
   ));
 
@@ -73,7 +73,7 @@ if ($ADMIN->fulltree) {
     'block_delta_visualizations/sessioncap',
     get_string('settingssessioncap', 'block_delta_visualizations'),
     get_string('settingssessioncap_desc', 'block_delta_visualizations'),
-    \block_delta_visualizations\local\behaviour_config::default('sessioncap'),
+    \block_delta_visualizations\local\BehaviourConfig::default('sessioncap'),
     MINSECS
   );
   // the minimum cap on duration between two events is 1 minute

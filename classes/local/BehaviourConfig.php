@@ -29,7 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 /**
  * Provides defaults and bounded values for numeric plugin settings.
  */
-final class behaviour_config
+final class BehaviourConfig
 {
   private const RULES = [
     'gradethreshold' => ['default' => 70.0, 'min' => 0.0, 'max' => 100.0],
