@@ -17,7 +17,7 @@
 {{!
     @template block_delta_visualizations/partials/tabs
 
-    Displays teacher and student behaviours in two accessible tab panels.
+    Displays teacher and student behaviours in two tab panels.
 
     Classes required for JS:
     * active - Marks the selected tab and panel.
@@ -44,8 +44,8 @@
         "teacher_behaviours": [
             {
                 "name": "Timely Feedback",
-                "studentsuccess": true,
-                "chart": "<div class=\"alert alert-info\">Example supporting teacher chart</div>"
+                "studentsuccess": false,
+                "chart": "<div class=\"alert alert-info\">Example non-supporting teacher chart</div>"
             },
             {
                 "name": "Monitoring Forums",
@@ -56,13 +56,13 @@
         "student_behaviours": [
             {
                 "name": "Login Frequency",
-                "studentsuccess": true,
-                "chart": "<div class=\"alert alert-info\">Example supporting student chart</div>"
+                "studentsuccess": false,
+                "chart": "<div class=\"alert alert-info\">Example non-supporting student chart</div>"
             },
             {
                 "name": "Forum Posting Frequency",
-                "studentsuccess": false,
-                "chart": "<div class=\"alert alert-info\">Example non-supporting student chart</div>"
+                "studentsuccess": true,
+                "chart": "<div class=\"alert alert-info\">Example supporting student chart</div>"
             }
         ]
     }

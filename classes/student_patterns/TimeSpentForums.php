@@ -138,12 +138,10 @@ class TimeSpentForums extends StudentBehaviourPattern
 
   public function create_bar_chart(): \core\chart_bar
   {
-    $data = $this->records;
-
     $students = [];
     $forum_view_time = [];
 
-    foreach ($data as $value) {
+    foreach ($this->records as $value) {
       $students[] =  intval($value->student_id);
       // convert active time in seconds to hours, rounded up
       $forum_view_time[] = (int)ceil($value->total_seconds_spent / HOURSECS);

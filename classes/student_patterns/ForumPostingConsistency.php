@@ -120,13 +120,11 @@ class ForumPostingConsistency extends StudentBehaviourPattern
 
   public function create_bar_chart(): \core\chart_bar
   {
-    $data = $this->records;
-
     $students = [];
     $posts_before = [];
     $posts_after = [];
 
-    foreach ($data as $value) {
+    foreach ($this->records as $value) {
       $students[] = intval($value->student_id);
       $posts_before[] = intval($value->forum_posts_before);
       $posts_after[] = intval($value->forum_posts_after);

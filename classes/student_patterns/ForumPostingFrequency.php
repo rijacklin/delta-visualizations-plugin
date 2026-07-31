@@ -97,12 +97,10 @@ class ForumPostingFrequency extends StudentBehaviourPattern
 
   public function create_bar_chart(): \core\chart_bar
   {
-    $data = $this->records;
-
     $students = [];
     $count = [];
 
-    foreach ($data as $value) {
+    foreach ($this->records as $value) {
       $students[] = intval($value->student_id);
       $count[] = intval($value->forum_post_frequency);
     }

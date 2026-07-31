@@ -55,7 +55,7 @@ function block_delta_visualizations_output_fragment_refresh_chart(array $args): 
   // sanitize the client-side values, then pass to registry for validation
   $behaviourid = clean_param($args['behaviourid'] ?? '', PARAM_RAW_TRIMMED);
   $filtervalue = clean_param($args['filtervalue'] ?? '', PARAM_RAW_TRIMMED);
-  $params = \block_delta_visualizations\local\BehaviourRegistry::filter_param(
+  $params = \block_delta_visualizations\local\BehaviourRegistry::params_for_filter(
     $behaviourid,
     $filtervalue
   );
@@ -66,7 +66,7 @@ function block_delta_visualizations_output_fragment_refresh_chart(array $args): 
   $chart = $behaviour->generate_chart($params);
 
   // if no records, need to send constructed HTML elemenet to avoid runtime error
-  if (empty($behaviour->get_records()) || !$chart instanceof \core\chart_base) {
+  if (empty($behaviour->get_records())) {
     return \html_writer::div(
       get_string('nodata', 'block_delta_visualizations')
     );
@@ -74,5 +74,6 @@ function block_delta_visualizations_output_fragment_refresh_chart(array $args): 
 
   // render and send updated chart to client-side
   $output = $PAGE->get_renderer('core');
+
   return $output->render($chart);
 }

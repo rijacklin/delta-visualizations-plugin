@@ -15,8 +15,8 @@
 // along with Moodle.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * Admin settings page for DELTA visualizations plugin. These are general,
- * institution-wide settings.
+ * Admin settings page. These are institution-wide settings that apply to all
+ * teachers and courses in a given Moodle installation.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

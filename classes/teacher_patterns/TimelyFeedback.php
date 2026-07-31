@@ -98,8 +98,7 @@ class TimelyFeedback extends TeacherBehaviourPattern
           ORDER BY
             students.course_id,
             students.student_id,
-            submission.assignment_id,
-            feedback.id
+            submission.assignment_id
         ) AS record_id,
         students.student_id,
         students.course_id,
@@ -115,9 +114,6 @@ class TimelyFeedback extends TeacherBehaviourPattern
         AND grade.userid = students.student_id
         AND grade.attemptnumber = submission.attempt_number
         AND grade.timemodified < students.course_end
-      LEFT JOIN {assignfeedback_comments} feedback
-        ON feedback.assignment = submission.assignment_id
-        AND feedback.grade = grade.id
       ORDER BY
         students.course_id,
         students.student_id,

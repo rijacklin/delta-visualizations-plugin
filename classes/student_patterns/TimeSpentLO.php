@@ -143,12 +143,10 @@ class TimeSpentLO extends StudentBehaviourPattern
 
   public function create_bar_chart(): \core\chart_bar
   {
-    $data = $this->records;
-
     $students = [];
     $lo_access_time = [];
 
-    foreach ($data as $value) {
+    foreach ($this->records as $value) {
       $students[] =  intval($value->student_id);
       // convert learning object view time in seconds to hours, rounded up
       $lo_access_time[] = (int)ceil($value->learning_object_view_time_seconds / HOURSECS);

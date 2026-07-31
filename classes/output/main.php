@@ -165,14 +165,14 @@ class main implements templatable
    */
   protected function get_selected_courseids(array $courses): array
   {
-    $selectedcourseids = [];
+    $selected_courseids = [];
 
     foreach ($courses as $course) {
       if ($course['selected']) {
-        $selectedcourseids[] = $course['id'];
+        $selected_courseids[] = $course['id'];
       }
     }
 
-    return $selectedcourseids;
+    return $selected_courseids;
   }
 }

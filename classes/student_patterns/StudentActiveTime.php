@@ -149,12 +149,10 @@ class StudentActiveTime extends StudentBehaviourPattern
 
   public function create_bar_chart(): \core\chart_bar
   {
-    $data = $this->records;
-
     $students = [];
     $active_time = [];
 
-    foreach ($data as $value) {
+    foreach ($this->records as $value) {
       $students[] =  intval($value->student_id);
       // convert active time in seconds to hours, rounded up
       $active_time[] = (int)ceil($value->active_time_seconds / HOURSECS);

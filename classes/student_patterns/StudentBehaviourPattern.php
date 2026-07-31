@@ -45,10 +45,10 @@ abstract class StudentBehaviourPattern implements ChartBehaviour
    * Calculate the inclusive reporting-window start from a validated time range.
    *
    * @param array $params Behaviour parameters.
-   * @param int|null $endtime End of the reporting window, defaulting to now.
+   * @param int $endtime End of the reporting window
    * @return int Unix timestamp.
    */
-  protected function get_start_time(array $params, ?int $endtime = null): int
+  protected function get_start_time(array $params, int $endtime): int
   {
     $timerange = TimeRange::tryFrom((string)($params['time_range'] ?? TimeRange::WEEKLY->value));
 
@@ -56,22 +56,18 @@ abstract class StudentBehaviourPattern implements ChartBehaviour
       throw new \invalid_parameter_exception('Unsupported time range');
     }
 
-    return $timerange->start_time($endtime ?? time());
+    return $timerange->start_time($endtime);
   }
 
   /**
    * Query the behaviour data and generate its bar chart.
    *
    * @param array $params Behaviour and query parameters.
-   * @return \core\chart_base|null
+   * @return \core\chart_base
    */
-  public function generate_chart(array $params): ?\core\chart_base
+  public function generate_chart(array $params): \core\chart_base
   {
     $this->records = [];
-
-    if (empty($params['courseids'])) {
-      return null;
-    }
 
     $this->query_behaviour_data($params);
 

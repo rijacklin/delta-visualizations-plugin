@@ -114,21 +114,19 @@ abstract class TeacherBehaviourPattern implements ChartBehaviour
    * Generates a behaviour pattern chart based on the provided parameters.
    *
    * @param array $params Params defining behaviour pattern chart
-   * @return \core\chart_base Optionally returns a chart or null
+   * @return \core\chart_base The generated chart
    */
-  public function generate_chart(array $params): ?\core\chart_base
+  public function generate_chart(array $params): \core\chart_base
   {
     $this->records = [];
     $this->chart = null;
 
-    if (empty($params['courseids'])) {
-      return null;
-    }
-
     $behaviour_data = $this->query_behaviour_data($params);
     $this->create_pie_chart($behaviour_data);
 
-    return $this->chart instanceof \core\chart_base ? $this->chart : null;
+    if (!is_null($this->chart)) {
+      return $this->chart;
+    }
   }
 
   /**

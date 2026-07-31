@@ -51,7 +51,7 @@ defined('MOODLE_INTERNAL') || die();
 final class BehaviourRegistry
 {
   /**
-   * Returns all behaviour definitions
+   * Returns all behaviour definitions.
    *
    * @param BehaviourGroup $group Teacher or student group filter
    * @return array
@@ -67,7 +67,7 @@ final class BehaviourRegistry
   }
 
   /**
-   * Returns single behaviour definition
+   * Returns single behaviour definition.
    *
    * @param string $id Behaviour identifier
    * @return array
@@ -79,7 +79,7 @@ final class BehaviourRegistry
   }
 
   /**
-   * Instantiate behaviour from registry
+   * Instantiate behaviour pattern from the registry.
    *
    * @param string $id Behaviour identifier
    * @return ChartBehaviour
@@ -100,7 +100,7 @@ final class BehaviourRegistry
    * @param string $value Submitted filter option value.
    * @return array Form field names mapped to initial values.
    */
-  public static function filter_param(string $id, string $value): array
+  public static function params_for_filter(string $id, string $value): array
   {
     $definition = self::get($id);
     $control = $definition['control'];
@@ -153,10 +153,10 @@ final class BehaviourRegistry
    */
   private static function definitions(): array
   {
-    $gradethreshold = BehaviourConfig::get('gradethreshold');
-    $feedbackgoal = BehaviourConfig::get('feedbackgoal');
-    $interactionthreshold = BehaviourConfig::get('interactionthreshold');
-    $timelyfeedbackdays = BehaviourConfig::get('timelyfeedbackdays');
+    $grade_threshold = BehaviourConfig::get('gradethreshold');
+    $feedback_goal = BehaviourConfig::get('feedbackgoal');
+    $interaction_threshold = BehaviourConfig::get('interactionthreshold');
+    $timely_feedback_days = BehaviourConfig::get('timelyfeedbackdays');
 
     return [
       'course_performance_feedback' => [
@@ -164,7 +164,7 @@ final class BehaviourRegistry
         'name' => 'Messaging Struggling Students (Low Grades)',
         'group' => BehaviourGroup::TEACHER,
         'studentsuccess' => true,
-        'defaults' => ['gradethreshold' => $gradethreshold],
+        'defaults' => ['gradethreshold' => $grade_threshold],
         'control' => null,
       ],
       'personalized_feedback' => [
@@ -172,7 +172,7 @@ final class BehaviourRegistry
         'name' => 'Personalized Feedback',
         'group' => BehaviourGroup::TEACHER,
         'studentsuccess' => true,
-        'defaults' => ['feedbackgoal' => $feedbackgoal],
+        'defaults' => ['feedbackgoal' => $feedback_goal],
         'control' => null,
       ],
       'timely_feedback' => [
@@ -180,7 +180,7 @@ final class BehaviourRegistry
         'name' => 'Timely Feedback',
         'group' => BehaviourGroup::TEACHER,
         'studentsuccess' => false,
-        'defaults' => ['days' => $timelyfeedbackdays],
+        'defaults' => ['days' => $timely_feedback_days],
         'control' => null,
       ],
       'monitoring_forums' => [
@@ -197,7 +197,7 @@ final class BehaviourRegistry
         'group' => BehaviourGroup::TEACHER,
         'studentsuccess' => false,
         'defaults' => [
-          'interactionthreshold' => $interactionthreshold,
+          'interactionthreshold' => $interaction_threshold,
         ],
         'control' => null,
       ],
@@ -284,13 +284,13 @@ final class BehaviourRegistry
    *
    * @return array
    */
-  private static function student_time_range_defaults(bool $usesessioncap = false): array
+  private static function student_time_range_defaults(bool $uses_sessioncap = false): array
   {
     $defaults = [
       'time_range' => TimeRange::WEEKLY->value,
     ];
 
-    if ($usesessioncap) {
+    if ($uses_sessioncap) {
       $defaults['sessioncap'] = BehaviourConfig::get('sessioncap');
     }
 

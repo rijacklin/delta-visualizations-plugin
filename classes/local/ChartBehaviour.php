@@ -35,9 +35,9 @@ interface ChartBehaviour
    * Generate a chart for a behaviour pattern based on parameters
    *
    * @param array $params Query, classification, and chart parameters.
-   * @return \core\chart_base|null The chart (or null if chart cannot be generated).
+   * @return \core\chart_base The generated chart
    */
-  public function generate_chart(array $params): ?\core\chart_base;
+  public function generate_chart(array $params): \core\chart_base;
 
   /**
    * Return records used to generate behaviour chart.

@@ -27,7 +27,7 @@ namespace block_delta_visualizations\local;
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Provides defaults and bounded values for numeric plugin settings.
+ * Provides defaults and bounds for the plugin settings.
  */
 final class BehaviourConfig
 {
@@ -47,13 +47,20 @@ final class BehaviourConfig
    */
   public static function get(string $name): int|float
   {
-    $rule = self::RULES[$name] ?? throw new \coding_exception("Unknown behaviour setting: {$name}");
+    // get the requested setting from configuration, throw an error if doesn't exist
+    if (!array_key_exists($name, self::RULES)) {
+      throw new \coding_exception("Unknown behaviour setting: {$name}");
+    } else {
+      $rule = self::RULES[$name];
+    }
+
     $value = get_config('block_delta_visualizations', $name);
 
     if ($value === false || !is_numeric($value)) {
       return $rule['default'];
     }
 
+    // ensure proper int or floating point value is returned for the corresponding setting
     $value = is_int($rule['default']) ? (int)$value : (float)$value;
     return $value >= $rule['min'] && $value <= $rule['max'] ? $value : $rule['default'];
   }
@@ -66,6 +73,11 @@ final class BehaviourConfig
    */
   public static function default(string $name): int|float
   {
-    return self::RULES[$name]['default'] ?? throw new \coding_exception("Unknown behaviour setting: {$name}");
+    if (!array_key_exists($name, self::RULES)) {
+      // throw an error if default doesn't exist
+      throw new \coding_exception("Unknown behaviour setting: {$name}");
+    }
+
+    return self::RULES[$name]['default'];
   }
 }

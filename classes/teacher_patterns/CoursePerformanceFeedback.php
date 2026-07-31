@@ -53,6 +53,7 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
     );
 
     $sql = "
+      -- return records of students in selected courses
       WITH course_students AS (
         SELECT DISTINCT
           ra.userid AS student_id,
@@ -70,6 +71,7 @@ class CoursePerformanceFeedback extends TeacherBehaviourPattern
         WHERE r.shortname = 'student'
           AND c.id $studentcourseidssql
       ),
+      -- return assignment submissions from course
       latest_submissions AS (
         SELECT
           submission.id AS submission_id,

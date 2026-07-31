@@ -53,6 +53,7 @@ class ConsistentUseLMS extends TeacherBehaviourPattern
     );
 
     $sql = "
+      -- return teachers in selected courses
       WITH course_teachers AS (
         SELECT DISTINCT
           ra.userid AS teacher_id,

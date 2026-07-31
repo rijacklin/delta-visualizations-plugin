@@ -133,12 +133,10 @@ class LoginFrequency extends StudentBehaviourPattern
 
   public function create_bar_chart(): \core\chart_bar
   {
-    $data = $this->records;
-
     $students = [];
     $frequency = [];
 
-    foreach ($data as $value) {
+    foreach ($this->records as $value) {
       $students[] = intval($value->student_id);
       $frequency[] = $value->login_frequency;
     }

@@ -153,12 +153,10 @@ class TimeSpentAssignments extends StudentBehaviourPattern
 
   public function create_bar_chart(): \core\chart_bar
   {
-    $data = $this->records;
-
     $students = [];
     $assign_view_time = [];
 
-    foreach ($data as $value) {
+    foreach ($this->records as $value) {
       $students[] = intval($value->student_id);
       // convert active time in seconds to hours, rounded up
       $assign_view_time[] = (int)ceil($value->assignment_time_seconds / HOURSECS);
