@@ -264,18 +264,7 @@ final class BehaviourRegistry
         'studentsuccess' => true,
         'defaults' => [],
         'control' => null,
-      ],
-      'forum_posting_consistency' => [
-        'class' => ForumPostingConsistency::class,
-        'name' => 'Forum posting consistency',
-        'group' => BehaviourGroup::STUDENT,
-        'studentsuccess' => true,
-        'defaults' => [
-          'chart_type' => '\\core\\chart_bar',
-          'final_window_weeks' => 2,
-        ],
-        'control' => null,
-      ],
+      ]
     ];
   }
 

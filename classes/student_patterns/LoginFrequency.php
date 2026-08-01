@@ -17,8 +17,8 @@
 /**
  * Models first student behaviour: Login Frequency
  *
- * Behaviour Pattern Description: Number of times each student both logs into the
- * LMS and accesses the course.
+ * Behaviour Pattern Description:
+ *  Number of times students both log into the LMS and accesses the course.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
@@ -78,7 +78,7 @@ class LoginFrequency extends StudentBehaviourPattern
           login.id AS login_id,
           login.userid,
           login.timecreated AS login_time,
-          -- grab subsequent login to estimate login event duration (as moodle doesn't always catch log outs)
+          -- grab subsequent login to estimate login event duration
           LEAD(login.timecreated) OVER (
             PARTITION BY login.userid
             ORDER BY login.timecreated, login.id
@@ -112,7 +112,7 @@ class LoginFrequency extends StudentBehaviourPattern
             )
           )
       )
-      -- returns frequency total for each student in selected courses (sum of frequency when same student is enrolled in and acccess multiple selected courses during a login event)
+      -- returns frequency total for each student in selected courses
       SELECT
         students.userid AS student_id,
         COUNT(accesses.login_id) AS login_frequency

@@ -17,14 +17,15 @@
 /**
  * Models teacher behaviour: Monitoring Forums
  *
- * Behaviour Pattern Description: Students often first look to the course
- * discussion forums when they need further guidance in the course. Teachers can
- * help clear confusion and avoid repeated messages by ensuring that issues
- * posted to the discussion forums have been resolved. This behaviour is being
- * exhibited if teachers are responding to such questions posted by students and
- * the students are following up with language that shows their issue has been
- * resolved. Teachers who fail to respond to such discussions, or fail to
- * sufficiently resolve a student's issue, are not exhibiting the behaviour.
+ * Behaviour Pattern Description:
+ *  Students often first look to the course discussion forums when they need
+ *  further guidance in the course. Teachers can help clear confusion and avoid
+ *  repeated messages by ensuring that issues posted to the discussion forums
+ *  have been resolved. This behaviour is being exhibited if teachers are
+ *  responding to such questions posted by students and the students are
+ *  following up with language that shows their issue has been resolved. Teachers
+ *  who fail to respond to such discussions, or fail to sufficiently resolve a
+ *  student's issue, are not exhibiting the behaviour.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

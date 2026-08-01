@@ -17,14 +17,15 @@
 /**
  * Models teacher behaviour: Timely Feedback
  *
- * Behaviour Pattern Description: It is important for students to receive
- * assignment feedback quickly so that they can make any necessary adjustments
- * to their learning process in a course. Institutions typically codify a set
- * number of days for teachers to provide feedback on submitted assignments.
- * This behaviour is exhibited if teachers provide feedback on an assignment
- * that is within this time frame, calculated as the submission date plus the
- * number of days in the institution's policy. Teachers who do not provide
- * feedback within this time frame are failing to exhibit the learning behaviour.
+ * Behaviour Pattern Description:
+ *  It is important for students to receive assignment feedback quickly so that
+ *  they can make any necessary adjustments to their learning process in a course.
+ *  Institutions typically codify a set number of days for teachers to provide
+ *  feedback on submitted assignments. This behaviour is exhibited if teachers 
+ *  provide feedback on an assignment that is within this time frame, calculated
+ *  as the submission date plus the number of days in the institution's policy.
+ *  Teachers who do not provide feedback within this time frame are failing 
+ *  to exhibit this behaviour.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

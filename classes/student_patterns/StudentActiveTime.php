@@ -17,7 +17,8 @@
 /**
  * Models student behaviour: Student Active Time
  *
- * Behaviour Pattern Description: Time duration student accesses a course.
+ * Behaviour Pattern Description:
+ *  A measure of the time a student spends actively engaging with the course.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
@@ -107,7 +108,7 @@ class StudentActiveTime extends StudentBehaviourPattern
                 THEN :sessioncapvalue
               ELSE next_event_time - timecreated
             END
-          -- catch--all for other events, these contribute no time to overall duration
+          -- catch-all for other events, these contribute no time to overall duration
           ELSE 0
         END AS active_seconds
         FROM ordered_course_events

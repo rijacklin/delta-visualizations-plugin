@@ -17,10 +17,15 @@
 /**
  * Models teacher behaviour: Consistent Use of LMS
  *
- * Behaviour Pattern Description: A teacher is actively engaged in their
- * course when they are actively participating with the online courses they
- * teach. Teachers who consistently log in and contribute to their courses
- * exhibit this behaviour.
+ * Behaviour Pattern Description:
+ *  An instructor is actively engaged in their course when they are actively
+ *  participating with the online courses they teach. Teachers who consistently
+ *  log in and contribute to their courses exhibit this behaviour. This behaviour
+ *  is being exhibited if the teacher is engaging with the course at least twice
+ *  in each weekly period from the beginning of the course to the end of the
+ *  course. Engagement with the course is defined as a period of creating or
+ *  updating some content from the course (e.g., creating a forum discussion/post,
+ *  updating a learning object, or submitting an assignment grade).
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

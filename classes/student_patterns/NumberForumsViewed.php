@@ -17,8 +17,8 @@
 /**
  * Models student behaviour: Number of Forums Viewed
  *
- * Behaviour Pattern Description: Number of forum discussions a student has
- * viewed in the course.
+ * Behaviour Pattern Description:
+ *  Number of forum discussions a student has viewed in the course.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

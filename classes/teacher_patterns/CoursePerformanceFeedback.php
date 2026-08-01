@@ -17,13 +17,13 @@
 /**
  * Models teacher behaviour: Course Performance Feedback
  *
- * Behaviour Pattern Description: Students who are not achieving sufficient
- * assignment grades should receive feedback from their teachers to encourage
- * and guide them to higher grades. This behaviour is exhibited by teachers who
- * identify students who are performing below grade expectations and writing
- * feedback that identifies where and how the student can improve. Teachers who
- * do not provide feedback containing such language fail to exhibit this
- * behaviour.
+ * Behaviour Pattern Description:
+ *  Students who are not achieving sufficient assignment grades should receive
+ *  feedback from their teachers to encourage and guide them to higher grades.
+ *  This behaviour is exhibited by teachers who identify students who are
+ *  performing below grade expectations on assignments and provide feedback that
+ *  identifies where and how the student can improve. Teachers who do not provide
+ *  feedback containing such language fail to exhibit this behaviour.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

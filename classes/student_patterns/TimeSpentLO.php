@@ -17,8 +17,10 @@
 /**
  * Models student behaviour: Time Spent Accessing Learning Objects
  *
- * Behaviour Pattern Description: Time duration student is viewing learning
- * objects in the course.
+ * Behaviour Pattern Description:
+ *  A measure of the time a student spends viewing learning objects in the
+ *  course. This feature does not include forum and assignment views to avoid
+ *  feature overlap.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

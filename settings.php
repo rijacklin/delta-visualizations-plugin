@@ -41,7 +41,7 @@ if ($ADMIN->fulltree) {
     PARAM_FLOAT
   ));
 
-  // sets an institution-wide feedback personalization goal.
+  // sets an institution-wide feedback uniqueness goal.
   $settings->add(new admin_setting_configtext(
     'block_delta_visualizations/feedbackgoal',
     get_string('settingsfeedbackgoal', 'block_delta_visualizations'),

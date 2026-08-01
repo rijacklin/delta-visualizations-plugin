@@ -17,8 +17,10 @@
 /**
  * Models student behaviour: Time Spent on Assignments
  *
- * Behaviour Pattern Description: Time duration of student first accessing the
- * assignment learning object and submitting the assignment.
+ * Behaviour Pattern Description:
+ *  An estimated measure of the time student spends on each course assignment,
+ *  measured as the duration between first accessing the assignment learning
+ *  object and submitting the assignment.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

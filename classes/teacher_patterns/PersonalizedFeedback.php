@@ -17,10 +17,11 @@
 /**
  * Models teacher behaviour: Personalized Feedback
  *
- * Behaviour Pattern Description: All students should receive assignment feedback
- * that is personalized. This behaviour compares all assignment feedback from a
- * teacher and calculates a uniqueness score. This behaviour is exhibited if the
- * teacher feedback contains language that is sufficiently unique.
+ * Behaviour Pattern Description:
+ *  All students should receive assignment feedback that is personalized. This
+ *  behaviour compares all the assignment feedback from a teacher and calculates
+ *  a uniqueness score. This behaviour is exhibited if the teacher feedback contains
+ *  language that is sufficiently unique among students.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>

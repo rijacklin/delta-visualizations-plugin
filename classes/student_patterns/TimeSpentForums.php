@@ -17,8 +17,8 @@
 /**
  * Models student behaviour: Time Spent on Forums
  *
- * Behaviour Pattern Description: Time duration student views forums in the
- * course.
+ * Behaviour Pattern Description:
+ *  A measure of the time student spends viewing forums in the course.
  *
  * @package     block_delta_visualizations
  * @copyright   2026 Richard Jacklin <rijacklin1@gmail.com>
