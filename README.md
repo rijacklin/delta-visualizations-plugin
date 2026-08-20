@@ -11,8 +11,6 @@ The DELTA Visualizations Moodle plugin provides a dashboard block for teachers t
 Installation
 ============
 
-## Installation
-
 * Download `delta_visualizations.zip`
 
 ### Automatic Installation
